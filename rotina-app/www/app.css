@@ -1,17 +1,13 @@
 /* Layout: uma coluna, letras grandes, alvos de toque grandes. Topo com o dia e o progresso,
    faixa da semana, lista de tarefas que se marca tocando na linha inteira. */
 :root {
-  --bg: #F2F5F3; --surface: #FFFFFF; --ink: #15201A; --muted: #5C6A63; --line: #DAE2DD;
-  --accent: #1C6A50; --accent-soft: #E0EEE7; --on-accent: #FFFFFF;
-  --now: #A86D14; --now-soft: #FAEFD9; --danger: #B3362E; --danger-soft: #F8E3E1;
-  --shadow: 0 1px 2px rgba(20,40,30,.06), 0 8px 24px rgba(20,40,30,.08);
-  --f: "Roboto", system-ui, -apple-system, sans-serif;
-}
-@media (prefers-color-scheme: dark) { :root {
   --bg: #0E1412; --surface: #18211D; --ink: #ECF2EE; --muted: #9AA9A1; --line: #2A3530;
   --accent: #5DC39B; --accent-soft: #1B3228; --on-accent: #0A1912;
   --now: #E3AE58; --now-soft: #372B16; --danger: #EC7D72; --danger-soft: #3A1E1B;
-  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.3); color-scheme: dark } }
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.3);
+  --f: "Roboto", system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
 
 * { box-sizing: border-box }
 [hidden] { display: none !important }
