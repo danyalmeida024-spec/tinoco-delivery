@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<title>Minha Rotina</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="top">
+      <div>
+        <div class="eyebrow" id="eyebrow">Hoje</div>
+        <h1 id="dateTitle">—</h1>
+      </div>
+      <div class="nav">
+        <button class="icon-btn" id="prev" aria-label="Dia anterior">‹</button>
+        <button class="pill-btn" id="goToday" hidden>Hoje</button>
+        <button class="icon-btn" id="next" aria-label="Próximo dia">›</button>
+      </div>
+    </div>
+    <div class="week" id="week" role="tablist" aria-label="Semana"></div>
+  </header>
+
+  <div class="summary" id="summary">
+    <span class="count" id="count">0 de 0</span>
+    <div class="bar" aria-hidden="true"><i id="barFill"></i></div>
+    <span class="streak" id="streak"></span>
+  </div>
+
+  <div class="status" id="status" hidden></div>
+
+  <ul class="list" id="list"></ul>
+  <div class="empty" id="empty" hidden></div>
+</div>
+
+<button class="fab" id="addBtn"><span>+</span> Nova tarefa</button>
+<div class="toast" id="toast" hidden></div>
+
+<div class="overlay" id="overlay" hidden>
+  <form class="sheet" id="form" novalidate>
+    <h2 id="formTitle">Nova tarefa</h2>
+    <label class="field"><span>Tarefa</span><input type="text" id="f-title" maxlength="120" placeholder="Ex.: Ir à academia" autocomplete="off"></label>
+    <div class="row2">
+      <label class="field"><span>Horário</span><input type="time" id="f-time"></label>
+      <label class="field" id="dateField"><span>Data</span><input type="date" id="f-date"></label>
+    </div>
+    <div class="field">
+      <span class="lbl">Repetir</span>
+      <div class="seg">
+        <label><input type="radio" name="rep" id="rep-daily" value="daily"><span>Todo dia</span></label>
+        <label><input type="radio" name="rep" id="rep-weekly" value="weekly"><span>Dias da semana</span></label>
+        <label><input type="radio" name="rep" id="rep-once" value="once"><span>Só uma vez</span></label>
+      </div>
+    </div>
+    <div class="field" id="wdField">
+      <span class="lbl">Quais dias</span>
+      <div class="wds" id="wds"></div>
+    </div>
+    <div class="field">
+      <span class="lbl">No horário</span>
+      <div class="seg">
+        <label><input type="radio" name="alert" id="al-none" value="none"><span>Sem aviso</span></label>
+        <label><input type="radio" name="alert" id="al-notify" value="notify"><span>Notificação</span></label>
+        <label><input type="radio" name="alert" id="al-alarm" value="alarm"><span>Despertador</span></label>
+      </div>
+    </div>
+    <p class="err" id="formErr" hidden></p>
+    <div class="actions">
+      <button type="button" class="btn danger" id="delBtn" hidden>Excluir</button>
+      <div class="right">
+        <button type="button" class="btn" id="cancelBtn">Cancelar</button>
+        <button type="submit" class="btn primary" id="saveBtn">Salvar</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<script src="capacitor.js"></script>
+<script>
+(() => {
+  const WD = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+  const WD_LONG = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+  const MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, "0");
+  const toStr = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parse = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return toStr(d); };
+  const today = () => toStr(new Date());
+  const nowHM = () => { const n = new Date(); return `${pad(n.getHours())}:${pad(n.getMinutes())}`; };
+  const rid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+
+  // ---------- ponte com o Android ----------
+  const Cap = window.capacitorExports;
+  const native = !!(Cap && Cap.Capacitor.isNativePlatform());
+  const Prefs = native ? Cap.registerPlugin("Preferences") : null;
+  const Rotina = native ? Cap.registerPlugin("Rotina") : null;
+  const KEY = "rotina-v1";
+
+  const state = { tasks: new Map(), days: new Map(), sel: today() };
+
+  async function load() {
+    try {
+      let raw = null;
+      if (Prefs) raw = (await Prefs.get({ key: KEY })).value;
+      else raw = localStorage.getItem(KEY);
+      if (raw) { const o = JSON.parse(raw); state.tasks = new Map(o.tasks); state.days = new Map(o.days); }
+    } catch (e) {}
+  }
+  let syncTimer = null;
+  async function save() {
+    const raw = JSON.stringify({ tasks: [...state.tasks], days: [...state.days] });
+    try { if (Prefs) await Prefs.set({ key: KEY, value: raw }); else localStorage.setItem(KEY, raw); } catch (e) {}
+    clearTimeout(syncTimer); syncTimer = setTimeout(syncNative, 250);
+  }
+  async function syncNative() {
+    if (!Rotina) return;
+    const t0 = today(), tasks = [], skip = [];
+    state.tasks.forEach((t, id) => tasks.push({ id, ...t }));
+    state.days.forEach((v, k) => {
+      const date = k.slice(2);
+      if (date >= t0) Object.keys(v.done || {}).forEach(id => skip.push(id + "|" + date));
+    });
+    try { await Rotina.sync({ tasks, skip }); } catch (e) { toast("Não consegui agendar os avisos. Abra o app de novo."); }
+    refreshStatus();
+  }
+  async function pullDone() {
+    if (!Rotina) return;
+    try {
+      const { items } = await Rotina.takeDone();
+      if (items && items.length) {
+        items.forEach(({ taskId, date }) => {
+          const key = "d-" + date, done = { ...((state.days.get(key) || {}).done || {}) };
+          done[taskId] = true; state.days.set(key, { done });
+        });
+        render(); save();
+      }
+    } catch (e) {}
+  }
+
+  let toastTimer = null;
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 4000); }
+
+  // ---------- regras de agenda ----------
+  function appliesOn(t, ds) {
+    if (t.repeat === "once") return t.date === ds;
+    if (t.start && ds < t.start) return false;
+    if (t.repeat === "daily") return true;
+    if (t.repeat === "weekly") return Array.isArray(t.days) && t.days.includes(parse(ds).getDay());
+    return false;
+  }
+  function tasksFor(ds) {
+    const out = [];
+    state.tasks.forEach((t, id) => { if (appliesOn(t, ds)) out.push({ id, ...t }); });
+    out.sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99") || a.title.localeCompare(b.title));
+    return out;
+  }
+  const doneMap = ds => (state.days.get("d-" + ds) || {}).done || {};
+  function stats(ds) { const ts = tasksFor(ds), dm = doneMap(ds); return { total: ts.length, done: ts.filter(t => dm[t.id]).length }; }
+  function repeatLabel(t) {
+    if (t.repeat === "daily") return "Todo dia";
+    if (t.repeat === "once") { const d = parse(t.date); return `Só em ${d.getDate()}/${pad(d.getMonth() + 1)}`; }
+    const ds = (t.days || []).slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+    if (ds.length === 5 && ![0, 6].some(x => ds.includes(x))) return "Seg a sex";
+    if (ds.length === 7) return "Todo dia";
+    return ds.map(x => WD[x][0].toUpperCase() + WD[x].slice(1)).join(", ");
+  }
+  const alertLabel = t => !t.time ? "" : t.alert === "alarm" ? " · despertador" : t.alert === "notify" ? " · notificação" : "";
+  function streak() {
+    let ds = today(); const s0 = stats(ds);
+    if (!(s0.total && s0.done === s0.total)) ds = addDays(ds, -1);
+    let n = 0;
+    for (let i = 0; i < 400; i++) { const s = stats(ds); if (s.total) { if (s.done === s.total) n++; else break; } ds = addDays(ds, -1); }
+    return n;
+  }
+  function nextAlert() {
+    const hm = nowHM();
+    for (let i = 0; i < 8; i++) {
+      const ds = addDays(today(), i), dm = doneMap(ds);
+      const t = tasksFor(ds).find(t => t.time && (t.alert === "alarm" || t.alert === "notify") && !dm[t.id] && (i > 0 || t.time > hm));
+      if (t) return `${i === 0 ? "hoje" : i === 1 ? "amanhã" : WD[parse(ds).getDay()]} às ${t.time} · ${t.title}`;
+    }
+    return null;
+  }
+
+  // ---------- desenho ----------
+  const CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="color:var(--on-accent)"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+  function ring(done, total) {
+    const r = 9, c = 2 * Math.PI * r, p = total ? done / total : 0, full = total && done === total;
+    return `<svg class="ring" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="${r}" fill="${full ? "var(--accent)" : "none"}" stroke="var(--line)" stroke-width="2.5"/>` +
+      (total && !full ? `<circle cx="11" cy="11" r="${r}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="${c * p} ${c}" transform="rotate(-90 11 11)"/>` : "") +
+      (full ? `<path d="M7 11.3l2.6 2.4L15 8.3" fill="none" stroke="var(--on-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>` : "") + `</svg>`;
+  }
+
+  function render() {
+    const sel = state.sel, t0 = today(), d = parse(sel);
+    const diff = Math.round((d - parse(t0)) / 864e5);
+    $("eyebrow").textContent = diff === 0 ? "Hoje" : diff === -1 ? "Ontem" : diff === 1 ? "Amanhã" : WD_LONG[d.getDay()];
+    $("dateTitle").textContent = `${WD_LONG[d.getDay()]}, ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
+    $("goToday").hidden = diff === 0;
+
+    const monday = addDays(sel, -((d.getDay() + 6) % 7));
+    const week = $("week"); week.innerHTML = "";
+    for (let i = 0; i < 7; i++) {
+      const ds = addDays(monday, i), dd = parse(ds), s = stats(ds);
+      const b = document.createElement("button");
+      b.className = "day" + (ds === sel ? " sel" : "") + (ds === t0 ? " today" : "");
+      b.setAttribute("role", "tab"); b.setAttribute("aria-selected", ds === sel);
+      b.setAttribute("aria-label", `${WD_LONG[dd.getDay()]} ${dd.getDate()}: ${s.done} de ${s.total} feitas`);
+      b.innerHTML = `<span class="wd">${WD[dd.getDay()]}</span><span class="dn">${dd.getDate()}</span>${ring(s.done, s.total)}`;
+      b.onclick = () => { state.sel = ds; render(); };
+      week.appendChild(b);
+    }
+
+    const ts = tasksFor(sel), dm = doneMap(sel), s = stats(sel);
+    $("count").textContent = `${s.done} de ${s.total}`;
+    $("barFill").style.width = (s.total ? (s.done / s.total) * 100 : 0) + "%";
+    const st = streak();
+    $("streak").innerHTML = st ? `<b>${st}</b> ${st === 1 ? "dia completo" : "dias seguidos"}` : "";
+    $("summary").hidden = state.tasks.size === 0;
+
+    let nextId = null;
+    if (sel === t0) {
+      const hm = nowHM(), pend = ts.filter(t => !dm[t.id] && t.time);
+      const n = pend.find(t => t.time >= hm) || pend[pend.length - 1];
+      if (n) nextId = n.id;
+    }
+
+    const list = $("list"); list.innerHTML = "";
+    ts.forEach(t => {
+      const li = document.createElement("li"), isDone = !!dm[t.id];
+      li.className = "item" + (isDone ? " done" : "") + (t.id === nextId ? " next" : "");
+      const time = document.createElement("span");
+      time.className = "time" + (t.time ? "" : " none"); time.textContent = t.time || "livre";
+      const chk = document.createElement("button");
+      chk.className = "check"; chk.setAttribute("aria-pressed", isDone);
+      chk.setAttribute("aria-label", (isDone ? "Desmarcar " : "Marcar como feita: ") + t.title);
+      chk.innerHTML = CHECK; chk.onclick = () => toggle(t.id);
+      const body = document.createElement("div"); body.className = "body";
+      const ti = document.createElement("span"); ti.className = "title"; ti.textContent = t.title;
+      if (t.id === nextId) { const c = document.createElement("span"); c.className = "chip-now"; c.textContent = "Próxima"; ti.appendChild(c); }
+      const me = document.createElement("span"); me.className = "meta"; me.textContent = repeatLabel(t) + alertLabel(t);
+      body.append(ti, me);
+      const ed = document.createElement("button"); ed.className = "edit"; ed.textContent = "⋯";
+      ed.setAttribute("aria-label", "Editar " + t.title); ed.onclick = () => openSheet(t.id);
+      li.append(time, chk, body, ed);
+      list.appendChild(li);
+    });
+
+    const empty = $("empty");
+    if (state.tasks.size === 0) {
+      empty.hidden = false;
+      empty.innerHTML = `<h2>Monte sua rotina</h2><p>Adicione as tarefas que você faz todo dia, em certos dias da semana ou numa data específica. Escolha notificação ou despertador para cada uma.</p>`;
+      const b1 = document.createElement("button"); b1.className = "btn primary"; b1.textContent = "Adicionar primeira tarefa"; b1.onclick = () => openSheet(null);
+      const b2 = document.createElement("button"); b2.className = "btn"; b2.textContent = "Começar com uma rotina de exemplo"; b2.onclick = seedExample;
+      empty.append(b1, b2);
+    } else if (ts.length === 0) {
+      empty.hidden = false; empty.innerHTML = `<h2>Dia livre</h2><p>Nenhuma tarefa para este dia.</p>`;
+    } else empty.hidden = true;
+    renderStatus();
+  }
+
+  // ---------- cartão de alarmes ----------
+  let perm = null;
+  async function refreshStatus() {
+    if (!Rotina) return;
+    try { perm = await Rotina.status(); } catch (e) { perm = null; }
+    renderStatus();
+  }
+  function renderStatus() {
+    const box = $("status");
+    const hasAlerts = [...state.tasks.values()].some(t => t.time && t.alert && t.alert !== "none");
+    if (!native) { box.hidden = state.tasks.size === 0; box.className = "status"; box.innerHTML = `<h3><span class="dot"></span>Avisos só no app Android</h3><p>Instale o app no celular para receber notificações e despertador.</p>`; return; }
+    if (!perm || !hasAlerts) { box.hidden = true; return; }
+    box.hidden = false; box.innerHTML = "";
+    const h = document.createElement("h3"), p = document.createElement("p"), btns = document.createElement("div");
+    btns.className = "btns";
+    const add = (label, fn, primary) => { const b = document.createElement("button"); b.className = "btn" + (primary ? " primary" : ""); b.textContent = label; b.onclick = fn; btns.appendChild(b); };
+    if (!perm.notifications) {
+      box.className = "status";
+      h.innerHTML = `<span class="dot"></span>`; h.append("Notificações desligadas");
+      p.textContent = "Sem essa permissão os avisos e o despertador não aparecem.";
+      add("Permitir notificações", async () => {
+        try { const r = await Rotina.requestNotifications(); if (!r.granted) await Rotina.openSettings({ what: "notifications" }); } catch (e) {}
+        refreshStatus();
+      }, true);
+    } else if (!perm.exact) {
+      box.className = "status";
+      h.innerHTML = `<span class="dot"></span>`; h.append("Horário exato desligado");
+      p.textContent = "Sem essa permissão o Android pode atrasar os alarmes alguns minutos.";
+      add("Permitir alarmes no horário", () => Rotina.openSettings({ what: "exact" }), true);
+    } else if (!perm.fullScreen) {
+      box.className = "status";
+      h.innerHTML = `<span class="dot"></span>`; h.append("Despertador em tela cheia desligado");
+      p.textContent = "O alarme toca, mas só como notificação. Permita para ele abrir por cima da tela bloqueada.";
+      add("Permitir tela cheia", () => Rotina.openSettings({ what: "fullscreen" }), true);
+    } else {
+      box.className = "status ok";
+      h.innerHTML = `<span class="dot"></span>`; h.append("Avisos ativos");
+      const n = nextAlert();
+      p.textContent = n ? "Próximo: " + n : "Nenhum aviso nos próximos dias.";
+    }
+    add("Testar despertador", async () => {
+      try { await Rotina.test({ seconds: 10 }); toast("O despertador de teste toca em 10 segundos. Pode bloquear a tela."); }
+      catch (e) { toast("Não consegui agendar o teste."); }
+    });
+    box.append(h, p, btns);
+  }
+
+  function toggle(id) {
+    const key = "d-" + state.sel, done = { ...doneMap(state.sel) };
+    if (done[id]) delete done[id]; else done[id] = true;
+    state.days.set(key, { done });
+    render(); save();
+  }
+
+  function seedExample() {
+    const s = today();
+    [
+      ["Acordar e beber água", "06:30", "daily", null, "alarm"],
+      ["Exercício", "07:00", "weekly", [1, 3, 5], "notify"],
+      ["Café da manhã", "07:30", "daily", null, "none"],
+      ["Revisar tarefas do dia", "08:00", "weekly", [1, 2, 3, 4, 5], "notify"],
+      ["Almoço", "12:00", "daily", null, "none"],
+      ["Ler 20 minutos", "21:00", "daily", null, "notify"],
+      ["Preparar o dia seguinte", "22:00", "daily", null, "notify"],
+    ].forEach(([title, time, repeat, days, alert]) => {
+      state.tasks.set("t-" + rid(), { title, time, repeat, days: days || [], start: s, date: "", alert });
+    });
+    render(); save();
+    if (Rotina) Rotina.requestNotifications().then(refreshStatus).catch(() => {});
+  }
+
+  // ---------- formulário ----------
+  let editing = null, delArmed = false;
+  const wds = $("wds");
+  [1, 2, 3, 4, 5, 6, 0].forEach(n => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="checkbox" id="wd-${n}" value="${n}"><span>${WD[n]}</span>`;
+    wds.appendChild(l);
+  });
+  function syncRepeat() {
+    const r = document.querySelector('input[name="rep"]:checked').value;
+    $("wdField").hidden = r !== "weekly";
+    $("dateField").querySelector("span").textContent = r === "once" ? "Data" : "Começa em";
+  }
+  document.querySelectorAll('input[name="rep"]').forEach(i => i.onchange = syncRepeat);
+
+  function openSheet(id) {
+    editing = id; delArmed = false;
+    const t = id ? state.tasks.get(id) : null;
+    $("formTitle").textContent = t ? "Editar tarefa" : "Nova tarefa";
+    $("f-title").value = t ? t.title : "";
+    $("f-time").value = t ? t.time : "";
+    $("f-date").value = t ? (t.repeat === "once" ? t.date : (t.start || state.sel)) : state.sel;
+    $("rep-" + (t ? t.repeat : "daily")).checked = true;
+    $("al-" + (t ? (t.alert || "none") : "notify")).checked = true;
+    const days = t && t.repeat === "weekly" ? t.days : [parse(state.sel).getDay()];
+    for (let n = 0; n < 7; n++) $("wd-" + n).checked = days.includes(n);
+    $("delBtn").hidden = !t; $("delBtn").textContent = "Excluir";
+    $("formErr").hidden = true;
+    syncRepeat();
+    $("overlay").hidden = false;
+  }
+  function closeSheet() { $("overlay").hidden = true; editing = null; }
+  $("cancelBtn").onclick = closeSheet;
+  $("overlay").addEventListener("click", e => { if (e.target === $("overlay")) closeSheet(); });
+
+  $("form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const title = $("f-title").value.trim();
+    const repeat = document.querySelector('input[name="rep"]:checked').value;
+    const alert = document.querySelector('input[name="alert"]:checked').value;
+    const days = [...wds.querySelectorAll("input:checked")].map(i => Number(i.value));
+    const date = $("f-date").value || state.sel;
+    const time = $("f-time").value || "";
+    const err = $("formErr");
+    if (!title) { err.textContent = "Escreva o nome da tarefa."; err.hidden = false; return; }
+    if (repeat === "weekly" && !days.length) { err.textContent = "Escolha pelo menos um dia da semana."; err.hidden = false; return; }
+    if (alert !== "none" && !time) { err.textContent = "Para avisar ou despertar, escolha um horário."; err.hidden = false; return; }
+    const id = editing || "t-" + rid();
+    state.tasks.set(id, { title, time, alert, repeat, days: repeat === "weekly" ? days : [], date: repeat === "once" ? date : "", start: repeat === "once" ? "" : date });
+    if (repeat === "once") state.sel = date;
+    closeSheet(); render(); save();
+    if (alert !== "none" && Rotina && perm && !perm.notifications) { try { await Rotina.requestNotifications(); } catch (e) {} refreshStatus(); }
+  });
+  $("delBtn").onclick = () => {
+    if (!delArmed) { delArmed = true; $("delBtn").textContent = "Toque de novo para excluir"; return; }
+    state.tasks.delete(editing); closeSheet(); render(); save();
+  };
+
+  $("addBtn").onclick = () => openSheet(null);
+  $("prev").onclick = () => { state.sel = addDays(state.sel, -1); render(); };
+  $("next").onclick = () => { state.sel = addDays(state.sel, 1); render(); };
+  $("goToday").onclick = () => { state.sel = today(); render(); };
+
+  let lastToday = today();
+  setInterval(() => {
+    const t = today();
+    if (t !== lastToday) { if (state.sel === lastToday) state.sel = t; lastToday = t; }
+    if ($("overlay").hidden) render();
+  }, 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") { pullDone(); refreshStatus(); if ($("overlay").hidden) { state.sel = state.sel || today(); render(); } }
+  });
+  if (Rotina) Rotina.addListener("done", pullDone);
+
+  (async () => {
+    render();
+    await load();
+    render();
+    await pullDone();
+    syncNative();
+  })();
+})();
+</script>
+</body>
+</html>

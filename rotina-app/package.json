@@ -1,0 +1,18 @@
+{
+  "name": "minha-rotina",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minha Rotina - app Android de rotina com alarmes",
+  "scripts": {
+    "web": "node -e \"require('fs').copyFileSync('node_modules/@capacitor/core/dist/capacitor.js','www/capacitor.js')\"",
+    "sync": "npm run web && cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "6.2.0",
+    "@capacitor/core": "6.2.0",
+    "@capacitor/preferences": "6.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "6.2.0"
+  }
+}
