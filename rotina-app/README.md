@@ -16,6 +16,7 @@ com o app fechado e o celular bloqueado.
 - Pular uma tarefa só num dia, sem quebrar a sequência.
 - Widget na tela inicial com a próxima tarefa e botão de feito.
 - Cópia de segurança em arquivo (Downloads) e restauração.
+- Aba Compras: lista da semana, adicionar escrevendo ou falando, marcar no carrinho, editar e limpar comprados.
 
 ## Como instalar
 

@@ -18,6 +18,11 @@
     <button class="prog" id="prog" aria-label="Ver progresso"></button>
   </header>
 
+  <div class="tabs" role="tablist" aria-label="Seções">
+    <button class="tab on" id="tabRotina" role="tab" aria-selected="true">Rotina</button>
+    <button class="tab" id="tabCompras" role="tab" aria-selected="false">Compras <span class="badge" id="shopBadge" hidden></span></button>
+  </div>
+
   <div class="weekbar">
     <button class="arrow" id="prev" aria-label="Dia anterior">‹</button>
     <div class="week" id="week" role="tablist" aria-label="Semana"></div>
@@ -31,6 +36,17 @@
   <ul class="list" id="list"></ul>
   <div class="empty" id="empty" hidden></div>
   <button class="link" id="testBtn" hidden>Testar despertador</button>
+
+  <section class="shop" id="shop">
+    <form class="add-row" id="shopForm" autocomplete="off">
+      <input type="text" id="shopInput" maxlength="80" placeholder="O que precisa comprar?" enterkeyhint="done" aria-label="Novo item">
+      <button type="button" class="alt" id="shopMic" aria-label="Falar itens" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
+      <button type="submit" aria-label="Adicionar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </form>
+    <ul class="shop-list" id="shopList"></ul>
+    <div class="shop-empty" id="shopEmpty" hidden><b>Lista vazia</b><span>Escreva ou fale o que precisa comprar.<br>Ex.: "arroz, feijão e leite"</span></div>
+    <button class="clear-btn" id="shopClear" hidden>Limpar comprados</button>
+  </section>
 </div>
 
 <div class="bottom">
@@ -137,7 +153,7 @@
   const Rotina = native ? Cap.registerPlugin("Rotina") : null;
   const KEY = "rotina-v1";
 
-  const state = { tasks: new Map(), days: new Map(), meta: { best: 0 }, sel: today() };
+  const state = { tasks: new Map(), days: new Map(), meta: { best: 0 }, shop: [], tab: "rotina", sel: today() };
 
   async function load() {
     try {
@@ -149,8 +165,9 @@
     state.tasks = new Map(o.tasks || []);
     state.days = new Map(o.days || []);
     state.meta = Object.assign({ best: 0 }, o.meta || {});
+    state.shop = Array.isArray(o.shop) ? o.shop : [];
   }
-  const dataBlob = () => ({ app: "minha-rotina", version: 2, tasks: [...state.tasks], days: [...state.days], meta: state.meta });
+  const dataBlob = () => ({ app: "minha-rotina", version: 2, tasks: [...state.tasks], days: [...state.days], meta: state.meta, shop: state.shop });
   let syncTimer = null;
   async function save() {
     const raw = JSON.stringify(dataBlob());
@@ -245,6 +262,8 @@
   }
 
   function render() {
+    if (state.tab === "shop") { renderShop(); return; }
+    renderShop();
     const sel = state.sel, t0 = today(), d = parse(sel);
     const diff = Math.round((d - parse(t0)) / 864e5);
     $("eyebrow").textContent = diff === 0 ? "Hoje" : diff === -1 ? "Ontem" : diff === 1 ? "Amanhã" : WD_LONG[d.getDay()];
@@ -493,7 +512,7 @@
     lg.innerHTML = `Pouco <i style="background:var(--bg)"></i><i style="background:color-mix(in srgb,var(--accent) 22%,var(--bg))"></i><i style="background:color-mix(in srgb,var(--accent) 50%,var(--bg))"></i><i style="background:color-mix(in srgb,var(--accent) 75%,var(--bg))"></i><i style="background:var(--accent)"></i> Tudo`;
     cal.append(head, grid, lg);
   }
-  $("prog").onclick = () => { calMonth = today().slice(0, 7); renderProgress(); $("importConfirm").hidden = true; openLayer($("progress")); };
+  $("prog").onclick = () => { if (state.tab === "shop") return; calMonth = today().slice(0, 7); renderProgress(); $("importConfirm").hidden = true; openLayer($("progress")); };
   $("pClose").onclick = closeLayer;
 
   // ---------- cópia de segurança ----------
@@ -523,7 +542,7 @@
     if (!pendingImport) return;
     applyData(pendingImport); pendingImport = null;
     $("importConfirm").hidden = true;
-    save(); renderProgress(); toast("Rotina restaurada.");
+    save(); renderProgress(); renderShop(); toast("Rotina restaurada.");
   };
 
   // ---------- voz ----------
@@ -706,7 +725,7 @@
     if (tx === null) return;
     const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
     tx = null;
-    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6) go(addDays(state.sel, dx < 0 ? 1 : -1));
+    if (state.tab !== "shop" && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6) go(addDays(state.sel, dx < 0 ? 1 : -1));
   }, { passive: true });
 
   let lastToday = today();
@@ -720,13 +739,101 @@
   });
   if (Rotina) Rotina.addListener("done", pullDone);
 
-  window.__rotina = { parseVoice };
+
+  // ---------- compras ----------
+  const ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4L19 7"/></svg>';
+  const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+  let shopEditing = null, clearArmed = false;
+  const shop = () => state.shop || (state.shop = []);
+  function splitItems(text) {
+    return text.split(/\s*(?:,|;|\n|\s+e\s+)\s*/i).map(x => x.trim().replace(/[.]+$/, "")).filter(Boolean)
+      .map(x => x[0].toUpperCase() + x.slice(1));
+  }
+  function addItems(text) {
+    const names = splitItems(text); if (!names.length) return 0;
+    names.forEach(name => shop().unshift({ id: "s-" + rid(), name, done: false }));
+    buzz(15); save(); renderShop(); return names.length;
+  }
+  function renderShop() {
+    const items = shop(), pend = items.filter(i => !i.done), got = items.filter(i => i.done);
+    const badge = $("shopBadge"); badge.hidden = !pend.length; badge.textContent = pend.length;
+    if (state.tab !== "shop") return;
+    $("eyebrow").textContent = "Compras da semana";
+    $("dateTitle").textContent = !items.length ? "Nada na lista" : pend.length ? `${pend.length} para comprar` : "Tudo comprado!";
+    const el = $("prog"); el.hidden = !items.length; el.className = "prog" + (items.length && !pend.length ? " full" : "");
+    const r = 32, c = 2 * Math.PI * r, p = items.length ? got.length / items.length : 0, full = items.length && !pend.length;
+    el.innerHTML = `<svg viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="${r}" fill="${full ? "var(--accent)" : "none"}" stroke="var(--accent-soft)" stroke-width="8"/>` +
+      (full ? "" : `<circle cx="38" cy="38" r="${r}" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c * p} ${c}"/>`) +
+      `</svg><span class="num">${full ? "✓" : `${got.length}/${items.length}`}</span>`;
+    const list = $("shopList"); list.innerHTML = "";
+    const add = it => {
+      const li = document.createElement("li");
+      li.className = "item" + (it.done ? " done" : "") + (it.id === justId ? " just" : "");
+      if (shopEditing === it.id) {
+        const box = document.createElement("form"); box.className = "edit-in";
+        const inp = document.createElement("input"); inp.value = it.name; inp.maxLength = 80; inp.setAttribute("aria-label", "Editar item");
+        const ok = document.createElement("button"); ok.type = "submit"; ok.className = "ok"; ok.innerHTML = ICON_OK; ok.setAttribute("aria-label", "Salvar");
+        const del = document.createElement("button"); del.type = "button"; del.className = "del"; del.innerHTML = ICON_TRASH; del.setAttribute("aria-label", "Apagar item");
+        box.onsubmit = e => { e.preventDefault(); const v = inp.value.trim(); if (v) it.name = v; else state.shop = shop().filter(x => x !== it); shopEditing = null; save(); renderShop(); };
+        del.onclick = () => { state.shop = shop().filter(x => x !== it); shopEditing = null; buzz(15); save(); renderShop(); };
+        box.append(inp, ok, del); li.append(box); list.appendChild(li);
+        setTimeout(() => { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }, 30);
+        return;
+      }
+      const row = document.createElement("button"); row.className = "row"; row.setAttribute("aria-pressed", it.done);
+      row.setAttribute("aria-label", (it.done ? "Comprado: " : "Marcar como comprado: ") + it.name);
+      row.onclick = () => { it.done = !it.done; if (it.done) { justId = it.id; buzz(25); } clearArmed = false; save(); renderShop(); };
+      const chk = document.createElement("span"); chk.className = "check"; chk.innerHTML = CHECK;
+      const body = document.createElement("span"); body.className = "body";
+      const ti = document.createElement("span"); ti.className = "title"; ti.textContent = it.name;
+      body.append(ti); row.append(chk, body);
+      const ed = document.createElement("button"); ed.className = "edit"; ed.innerHTML = ICON_EDIT; ed.setAttribute("aria-label", "Editar " + it.name);
+      ed.onclick = () => { shopEditing = it.id; renderShop(); };
+      li.append(row, ed); list.appendChild(li);
+    };
+    pend.forEach(add);
+    if (pend.length && got.length) { const lb = document.createElement("li"); lb.className = "done-label"; lb.textContent = "No carrinho"; list.appendChild(lb); }
+    got.forEach(add);
+    justId = null;
+    $("shopEmpty").hidden = items.length > 0;
+    const cb = $("shopClear"); cb.hidden = !got.length;
+    cb.className = "clear-btn" + (clearArmed ? " armed" : "");
+    cb.textContent = clearArmed ? `Toque de novo para tirar ${got.length} ${got.length === 1 ? "item" : "itens"}` : "Limpar comprados";
+    $("shopMic").hidden = !native;
+  }
+  $("shopForm").onsubmit = e => {
+    e.preventDefault();
+    const inp = $("shopInput"), n = addItems(inp.value);
+    if (n) { inp.value = ""; if (n > 1) toast(`${n} itens adicionados`); }
+    inp.focus();
+  };
+  $("shopMic").onclick = async () => {
+    const text = await listen(); if (!text) return;
+    const n = addItems(text);
+    toast(n === 1 ? `Adicionado: ${shop()[0].name}` : `${n} itens adicionados`);
+  };
+  $("shopClear").onclick = () => {
+    if (!clearArmed) { clearArmed = true; renderShop(); return; }
+    state.shop = shop().filter(i => !i.done); clearArmed = false; buzz(20); save(); renderShop();
+  };
+  function setTab(t) {
+    state.tab = t; state.meta.tab = t; shopEditing = null; clearArmed = false;
+    document.body.classList.toggle("shop-mode", t === "shop");
+    $("tabRotina").classList.toggle("on", t !== "shop"); $("tabRotina").setAttribute("aria-selected", t !== "shop");
+    $("tabCompras").classList.toggle("on", t === "shop"); $("tabCompras").setAttribute("aria-selected", t === "shop");
+    buzz(8); save();
+    if (t === "shop") renderShop(); else render();
+  }
+  $("tabRotina").onclick = () => setTab("rotina");
+  $("tabCompras").onclick = () => setTab("shop");
+
+  window.__rotina = { parseVoice, splitItems };
 
   (async () => {
     render();
     await load();
     checkRecord();
-    render();
+    if (state.meta.tab === "shop") setTab("shop"); else render();
     await pullDone();
     syncNative();
   })();

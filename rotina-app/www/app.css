@@ -199,3 +199,35 @@ input[type=time] { font-size: 24px; font-weight: 700; font-variant-numeric: tabu
 .backup .btn { width: 100% }
 .file-btn { position: relative; display: grid; place-items: center; overflow: hidden }
 .file-btn input { position: absolute; inset: 0; opacity: 0 }
+
+/* ---------- abas ---------- */
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--surface); border-radius: 18px; padding: 5px }
+.tab { min-height: 50px; border-radius: 14px; font-size: 18px; font-weight: 700; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 8px }
+.tab.on { background: var(--accent); color: var(--on-accent) }
+.tab .badge { min-width: 26px; height: 26px; padding: 0 7px; border-radius: 99px; background: var(--now); color: #1D1405; font-size: 15px; display: grid; place-items: center }
+.tab.on .badge { background: var(--on-accent); color: var(--accent) }
+
+/* ---------- compras ---------- */
+.shop { display: grid; gap: 14px }
+.add-row { display: flex; gap: 10px }
+.add-row input { flex: 1; font: inherit; font-size: 20px; height: 62px; padding: 0 18px; border-radius: 18px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); min-width: 0 }
+.add-row input:focus { border-color: var(--accent); outline: none }
+.add-row button { width: 62px; height: 62px; border-radius: 18px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex-shrink: 0 }
+.add-row button.alt { background: var(--surface); color: var(--accent) }
+.add-row button svg { width: 28px; height: 28px }
+.shop-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
+.shop-list .item { min-height: 72px }
+.shop-list .row { min-height: 72px; padding-block: 12px }
+.edit-in { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 10px }
+.edit-in input { flex: 1; width: 0; min-width: 0; font: inherit; font-size: 20px; height: 52px; padding: 0 14px; border-radius: 14px; border: 2px solid var(--accent); background: var(--bg); color: var(--ink) }
+.edit-in button { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0 }
+.edit-in .ok { background: var(--accent); color: var(--on-accent) }
+.edit-in .del { background: var(--danger-soft); color: var(--danger) }
+.edit-in svg { width: 24px; height: 24px }
+.shop-empty { text-align: center; color: var(--muted); padding: 34px 10px; display: grid; gap: 8px }
+.shop-empty b { font-size: 22px; color: var(--ink) }
+.clear-btn { justify-self: center; min-height: 52px; padding: 0 20px; border-radius: 16px; border: 2px solid var(--line); font-weight: 700; font-size: 17px; color: var(--muted) }
+.clear-btn.armed { border-color: var(--danger); color: var(--danger); background: var(--danger-soft) }
+body.shop-mode .weekbar, body.shop-mode #goToday, body.shop-mode #celebrate, body.shop-mode #list, body.shop-mode #empty,
+body.shop-mode #testBtn, body.shop-mode #status, body.shop-mode .bottom { display: none !important }
+body:not(.shop-mode) #shop { display: none !important }
