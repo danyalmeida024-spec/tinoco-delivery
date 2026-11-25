@@ -123,3 +123,79 @@ input[type=time] { font-size: 24px; font-weight: 700; font-variant-numeric: tabu
 .err { color: var(--danger); font-size: 16px; font-weight: 600; margin: 0 }
 
 @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important } }
+
+/* ---------- cores por tipo ---------- */
+.item.colored { box-shadow: inset 6px 0 0 var(--tc), var(--shadow) }
+.item.colored.next { box-shadow: inset 6px 0 0 var(--tc), 0 0 0 3px var(--now), var(--shadow) }
+.item.skipped { opacity: .45; box-shadow: none }
+.item.skipped .check { border-style: dashed }
+.colors { display: flex; gap: 10px; flex-wrap: wrap }
+.colors label { position: relative }
+.colors input { position: absolute; opacity: 0; pointer-events: none }
+.colors span { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; border: 3px solid transparent; background: var(--c); color: var(--muted); font-size: 22px }
+.colors span.none { background: var(--bg); border-color: var(--line) }
+.colors input:checked + span { border-color: var(--ink); transform: scale(1.08) }
+.switch { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; border: 2px solid var(--line); font-weight: 600; font-size: 17px }
+.switch input { width: 26px; height: 26px; accent-color: var(--accent); margin: 0; flex-shrink: 0 }
+.mic-wide { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; border-radius: 16px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 18px }
+.mic-wide svg, .mini svg { width: 26px; height: 26px }
+.heard { font-size: 15px; color: var(--muted); margin: -8px 0 0; font-style: italic }
+
+/* ---------- barra de baixo ---------- */
+.bottom { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); padding: 0 max(18px, calc(env(safe-area-inset-right, 0px) + 18px)) 0 max(18px, calc(env(safe-area-inset-left, 0px) + 18px));
+  display: flex; align-items: center; gap: 12px; z-index: 5; pointer-events: none }
+.bottom > * { pointer-events: auto }
+.bottom .spacer { flex: 1; pointer-events: none }
+.fab { position: static }
+.mini { width: 60px; height: 60px; border-radius: 20px; background: var(--surface); color: var(--accent); box-shadow: var(--shadow); display: grid; place-items: center }
+.focus-btn { height: 60px; padding: 0 22px; border-radius: 20px; background: var(--now); color: #1D1405; font-weight: 800; font-size: 18px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 8px }
+.focus-btn svg { width: 22px; height: 22px }
+.prog { cursor: pointer }
+
+/* ---------- modo foco ---------- */
+.layer { position: fixed; inset: 0; z-index: 25; background: var(--bg); display: flex; flex-direction: column; animation: up .2s ease;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(20px, env(safe-area-inset-left, 0px)) }
+.layer-top { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.layer-top h2 { margin: 0; font-size: 22px; font-weight: 700 }
+.close { width: 52px; height: 52px; border-radius: 16px; background: var(--surface); font-size: 26px; color: var(--muted) }
+.f-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 14px }
+.f-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line) }
+.f-dots i.on { background: var(--accent) }
+.f-main { flex: 1; display: grid; align-content: center; justify-items: center; text-align: center; gap: 12px; padding: 20px 0 }
+.f-time { font-size: 26px; font-weight: 800; color: var(--now); font-variant-numeric: tabular-nums }
+.f-title { font-size: clamp(32px, 9vw, 46px); font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; animation: pop .4s ease }
+.f-color { width: 60px; height: 8px; border-radius: 99px; background: var(--tc, transparent) }
+.f-actions { display: grid; gap: 12px }
+.f-done { min-height: 84px; border-radius: 24px; background: var(--accent); color: var(--on-accent); font-size: 26px; font-weight: 800 }
+.f-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+.f-row .btn { min-height: 60px }
+
+/* ---------- progresso ---------- */
+.layer.scroll { overflow-y: auto; display: block }
+.layer.scroll > .inner { max-width: 600px; margin: 0 auto; display: grid; gap: 18px }
+.garden { background: var(--surface); border-radius: 24px; padding: 18px; display: grid; justify-items: center; gap: 6px; text-align: center }
+.garden svg { width: 210px; height: 210px; max-width: 100% }
+.garden .big { font-size: 40px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums }
+.garden .sub { font-size: 17px; color: var(--muted) }
+.garden .rec { font-size: 16px; font-weight: 700; color: var(--now) }
+.cal { background: var(--surface); border-radius: 24px; padding: 16px; display: grid; gap: 10px }
+.cal-head { display: flex; align-items: center; justify-content: space-between }
+.cal-head b { font-size: 19px }
+.cal-head button { width: 44px; height: 44px; border-radius: 14px; font-size: 24px; color: var(--muted) }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px }
+.cal-grid .wdh { text-align: center; font-size: 13px; font-weight: 700; color: var(--muted) }
+.cal-grid button { aspect-ratio: 1; border-radius: 12px; font-size: 15px; font-weight: 700; background: var(--bg); color: var(--muted); font-variant-numeric: tabular-nums }
+.cal-grid button.l1 { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); color: var(--ink) }
+.cal-grid button.l2 { background: color-mix(in srgb, var(--accent) 50%, var(--bg)); color: var(--ink) }
+.cal-grid button.l3 { background: color-mix(in srgb, var(--accent) 75%, var(--bg)); color: var(--on-accent) }
+.cal-grid button.l4 { background: var(--accent); color: var(--on-accent) }
+.cal-grid button.fut { opacity: .4 }
+.cal-grid button.tod { outline: 3px solid var(--now); outline-offset: -3px }
+.legend { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; color: var(--muted) }
+.legend i { width: 16px; height: 16px; border-radius: 5px; display: inline-block }
+.backup { background: var(--surface); border-radius: 24px; padding: 16px; display: grid; gap: 10px }
+.backup h3 { margin: 0; font-size: 19px }
+.backup p { margin: 0; font-size: 15px; color: var(--muted) }
+.backup .btn { width: 100% }
+.file-btn { position: relative; display: grid; place-items: center; overflow: hidden }
+.file-btn input { position: absolute; inset: 0; opacity: 0 }

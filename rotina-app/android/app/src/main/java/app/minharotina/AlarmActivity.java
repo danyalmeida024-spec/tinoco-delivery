@@ -22,6 +22,7 @@ import android.widget.TextView;
 public class AlarmActivity extends Activity {
     static final String ACTION_CLOSE = "app.minharotina.CLOSE_ALARM";
     private String taskId, date;
+    private boolean firm;
 
     private final BroadcastReceiver closer = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) { finish(); }
@@ -56,8 +57,17 @@ public class AlarmActivity extends Activity {
         label.setLetterSpacing(0.15f);
         label.setAlpha(0.85f);
         TextView clock = text(time == null ? "" : time, 88, true);
-        TextView name = text(title == null ? "" : title, 26, true);
-        name.setPadding(0, dp(8), 0, dp(36));
+        TextView name = text(title == null ? "" : title, 30, true);
+        name.setPadding(0, dp(8), 0, dp(14));
+        org.json.JSONObject task = taskId == null ? null : Scheduler.findTask(this, taskId);
+        firm = task != null && task.optBoolean("firm", false);
+        String resumo = (date == null || taskId == null || taskId.startsWith("__")) ? "" : Scheduler.daySummary(this, date, taskId, time);
+        TextView summary = text(resumo, 18, false);
+        summary.setAlpha(0.92f);
+        summary.setPadding(0, 0, 0, dp(firm ? 16 : 30));
+        TextView firmNote = text(firm ? "Para desligar, faça a tarefa e toque em Feito" : "", 15, false);
+        firmNote.setAlpha(0.85f);
+        firmNote.setPadding(0, 0, 0, dp(firm ? 22 : 0));
 
         Button doneBtn = button("Feito ✓", Color.WHITE, orange);
         Button snoozeBtn = button("Soneca " + Scheduler.SNOOZE_MIN + " min", 0x33FFFFFF, Color.WHITE);
@@ -70,9 +80,13 @@ public class AlarmActivity extends Activity {
         root.addView(label);
         root.addView(clock);
         root.addView(name);
+        if (!resumo.isEmpty()) root.addView(summary);
+        if (firm) root.addView(firmNote);
         root.addView(doneBtn, btnParams());
-        root.addView(snoozeBtn, btnParams());
-        root.addView(stopBtn, btnParams());
+        if (!firm) {
+            root.addView(snoozeBtn, btnParams());
+            root.addView(stopBtn, btnParams());
+        }
         setContentView(root);
 
         IntentFilter f = new IntentFilter(ACTION_CLOSE);
@@ -85,7 +99,9 @@ public class AlarmActivity extends Activity {
         super.onDestroy();
     }
 
-    @Override public void onBackPressed() { send(Scheduler.ACTION_SNOOZE); }
+    @Override public void onBackPressed() {
+        if (!firm) send(Scheduler.ACTION_SNOOZE);
+    }
 
     private void send(String action) {
         Intent i = new Intent(this, AlarmReceiver.class).setAction(action);

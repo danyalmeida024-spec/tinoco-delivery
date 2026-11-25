@@ -17,6 +17,23 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
+import android.app.Activity;
+import android.content.ContentValues;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.speech.RecognizerIntent;
+
+import androidx.activity.result.ActivityResult;
+import androidx.core.content.FileProvider;
+
+import com.getcapacitor.annotation.ActivityCallback;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -139,6 +156,73 @@ public class RotinaPlugin extends Plugin {
             call.resolve();
         } catch (Exception e) {
             call.reject("Não foi possível testar", e);
+        }
+    }
+
+    /** Abre o reconhecimento de voz do Android em português. */
+    @PluginMethod
+    public void listen(PluginCall call) {
+        Intent i = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        i.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "pt-BR");
+        i.putExtra(RecognizerIntent.EXTRA_PROMPT, "Fale a tarefa, o dia e o horário");
+        try {
+            startActivityForResult(call, i, "listenResult");
+        } catch (Exception e) {
+            call.reject("O reconhecimento de voz não está disponível neste celular", "NO_VOICE");
+        }
+    }
+
+    @ActivityCallback
+    private void listenResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        if (result.getResultCode() != Activity.RESULT_OK || result.getData() == null) {
+            call.reject("Cancelado", "CANCELLED");
+            return;
+        }
+        ArrayList<String> r = result.getData().getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+        if (r == null || r.isEmpty()) {
+            call.reject("Não entendi", "EMPTY");
+            return;
+        }
+        JSObject o = new JSObject();
+        o.put("text", r.get(0));
+        call.resolve(o);
+    }
+
+    /** Salva a cópia de segurança em Downloads (ou abre o compartilhar em Androids antigos). */
+    @PluginMethod
+    public void saveBackup(PluginCall call) {
+        String name = call.getString("name", "MinhaRotina.json");
+        String data = call.getString("data", "");
+        try {
+            JSObject r = new JSObject();
+            if (Build.VERSION.SDK_INT >= 29) {
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.Downloads.DISPLAY_NAME, name);
+                v.put(MediaStore.Downloads.MIME_TYPE, "application/json");
+                v.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
+                Uri uri = getContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                if (uri == null) throw new Exception("sem destino");
+                try (OutputStream os = getContext().getContentResolver().openOutputStream(uri)) {
+                    os.write(data.getBytes(StandardCharsets.UTF_8));
+                }
+                r.put("where", "Downloads");
+            } else {
+                File f = new File(getContext().getCacheDir(), name);
+                try (FileOutputStream os = new FileOutputStream(f)) {
+                    os.write(data.getBytes(StandardCharsets.UTF_8));
+                }
+                Uri uri = FileProvider.getUriForFile(getContext(), getContext().getPackageName() + ".fileprovider", f);
+                Intent send = new Intent(Intent.ACTION_SEND).setType("application/json").putExtra(Intent.EXTRA_STREAM, uri)
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                Intent chooser = Intent.createChooser(send, "Guardar cópia da rotina").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(chooser);
+                r.put("where", "share");
+            }
+            call.resolve(r);
+        } catch (Exception e) {
+            call.reject("Não foi possível salvar a cópia");
         }
     }
 }

@@ -44,7 +44,8 @@ public class AlarmReceiver extends BroadcastReceiver {
         Calendar cal = Calendar.getInstance();
         cal.setTimeInMillis(at);
         String date = Scheduler.dateStr(cal);
-        if (!snooze && Scheduler.isSkipped(c, taskId, date)) return; // já marcada como feita
+        RotinaWidget.refresh(c);
+        if (!snooze && Scheduler.isSkipped(c, taskId, date)) return; // já feita ou pulada
         show(c, t, date);
     }
 
@@ -60,6 +61,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         String title = t.optString("title", "Tarefa");
         String time = t.optString("time", "");
         boolean alarm = "alarm".equals(t.optString("alert"));
+        boolean firm = alarm && t.optBoolean("firm", false);
         int id = notifId(taskId);
 
         Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
@@ -75,17 +77,16 @@ public class AlarmReceiver extends BroadcastReceiver {
             .setCategory(alarm ? NotificationCompat.CATEGORY_ALARM : NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(openPi)
             .setAutoCancel(!alarm)
-            .addAction(0, "Feito", actionPi(c, Scheduler.ACTION_DONE, taskId, date, id + 1))
-            .addAction(0, "Soneca " + Scheduler.SNOOZE_MIN + " min", actionPi(c, Scheduler.ACTION_SNOOZE, taskId, date, id + 2));
+            .addAction(0, "Feito", actionPi(c, Scheduler.ACTION_DONE, taskId, date, id + 1));
+        if (!firm) b.addAction(0, "Soneca " + Scheduler.SNOOZE_MIN + " min", actionPi(c, Scheduler.ACTION_SNOOZE, taskId, date, id + 2));
 
         if (alarm) {
             Intent full = new Intent(c, AlarmActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_USER_ACTION)
                 .putExtra("taskId", taskId).putExtra("date", date).putExtra("title", title).putExtra("time", time);
             PendingIntent fullPi = PendingIntent.getActivity(c, id + 3, full, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            b.setFullScreenIntent(fullPi, true)
-             .setOngoing(true)
-             .addAction(0, "Desligar", actionPi(c, Scheduler.ACTION_STOP, taskId, date, id + 4));
+            b.setFullScreenIntent(fullPi, true).setOngoing(true);
+            if (!firm) b.addAction(0, "Desligar", actionPi(c, Scheduler.ACTION_STOP, taskId, date, id + 4));
         }
         Notification n = b.build();
         if (alarm) n.flags |= Notification.FLAG_INSISTENT; // repete o som até desligar
@@ -105,6 +106,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         dismiss(c, taskId);
         if (taskId == null || date == null) return;
         Scheduler.addPendingDone(c, taskId, date);
+        RotinaWidget.refresh(c);
         RotinaPlugin.emitDone();
     }
 

@@ -204,6 +204,7 @@ public class Scheduler {
             if (at > 0) { setAt(c, t, at, code(id), false); n++; }
         }
         p.edit().putStringSet("ids", ids).apply();
+        RotinaWidget.refresh(c);
         return n;
     }
 
@@ -213,6 +214,54 @@ public class Scheduler {
             JSONArray skip = new JSONArray(prefs(c).getString("skip", "[]"));
             sync(c, tasks, skip);
         } catch (Exception ignored) {}
+    }
+
+    static Calendar calFor(String date) {
+        Calendar cal = Calendar.getInstance();
+        try {
+            String[] p = date.split("-");
+            cal.set(Integer.parseInt(p[0]), Integer.parseInt(p[1]) - 1, Integer.parseInt(p[2]), 12, 0, 0);
+        } catch (Exception ignored) {}
+        return cal;
+    }
+
+    /** Tarefas do dia que não foram feitas nem puladas, em ordem de horário. */
+    static java.util.List<JSONObject> pendingFor(Context c, String date) {
+        java.util.List<JSONObject> out = new java.util.ArrayList<>();
+        try {
+            JSONArray arr = new JSONArray(prefs(c).getString("tasks", "[]"));
+            Calendar cal = calFor(date);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject t = arr.getJSONObject(i);
+                String id = t.optString("id");
+                if (id.startsWith("__")) continue;
+                if (!applies(t, cal) || isSkipped(c, id, date)) continue;
+                out.add(t);
+            }
+        } catch (Exception ignored) {}
+        java.util.Collections.sort(out, (a, b) -> {
+            String ta = a.optString("time", ""), tb = b.optString("time", "");
+            if (ta.isEmpty()) ta = "99:99";
+            if (tb.isEmpty()) tb = "99:99";
+            return ta.compareTo(tb);
+        });
+        return out;
+    }
+
+    /** Resumo para a tela do despertador: quantas tarefas hoje e qual vem depois. */
+    static String daySummary(Context c, String date, String taskId, String time) {
+        java.util.List<JSONObject> list = pendingFor(c, date);
+        int n = list.size();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Hoje: ").append(n).append(n == 1 ? " tarefa" : " tarefas");
+        for (JSONObject t : list) {
+            String tt = t.optString("time", "");
+            if (!t.optString("id").equals(taskId) && !tt.isEmpty() && time != null && tt.compareTo(time) > 0) {
+                sb.append("\nDepois: ").append(t.optString("title")).append(" às ").append(tt);
+                break;
+            }
+        }
+        return sb.toString();
     }
 
     static boolean isSkipped(Context c, String taskId, String date) {

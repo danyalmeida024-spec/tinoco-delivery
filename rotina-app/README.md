@@ -4,6 +4,19 @@ App de rotina diária: tarefas fixas (todo dia ou em dias da semana) e tarefas d
 marcadas dia após dia. Cada tarefa pode ter notificação ou despertador no horário, que funcionam
 com o app fechado e o celular bloqueado.
 
+## O que o app faz
+
+- Tarefas fixas (todo dia, alguns dias da semana) e de uma vez só, com cor por tipo.
+- Toque na tarefa para marcar como feita; arraste para o lado para trocar de dia.
+- Aviso ou despertador no horário, com o app fechado. O despertador pode ser "firme":
+  só desliga ao marcar Feito. A tela do despertador mostra um resumo do dia.
+- Modo Foco: uma tarefa de cada vez, em tela cheia.
+- Progresso: jardim que cresce com os dias seguidos, recorde e calendário do mês.
+- Adicionar tarefa falando ("academia segunda, quarta e sexta às 7").
+- Pular uma tarefa só num dia, sem quebrar a sequência.
+- Widget na tela inicial com a próxima tarefa e botão de feito.
+- Cópia de segurança em arquivo (Downloads) e restauração.
+
 ## Como instalar
 
 1. No celular, abra a página de Releases deste repositório e baixe `MinhaRotina.apk` da versão mais nova.
