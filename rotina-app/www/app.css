@@ -1,0 +1,233 @@
+/* Layout: uma coluna, letras grandes, alvos de toque grandes. Topo com o dia e o progresso,
+   faixa da semana, lista de tarefas que se marca tocando na linha inteira. */
+:root {
+  --bg: #0E1412; --surface: #18211D; --ink: #ECF2EE; --muted: #9AA9A1; --line: #2A3530;
+  --accent: #5DC39B; --accent-soft: #1B3228; --on-accent: #0A1912;
+  --now: #E3AE58; --now-soft: #372B16; --danger: #EC7D72; --danger-soft: #3A1E1B;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.3);
+  --f: "Roboto", system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box }
+[hidden] { display: none !important }
+html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f); font-size: 18px; line-height: 1.4;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 120px) max(16px, env(safe-area-inset-left, 0px));
+  overscroll-behavior-y: contain; user-select: none; -webkit-user-select: none }
+input { user-select: text; -webkit-user-select: text }
+.wrap { max-width: 600px; margin: 0 auto; display: grid; gap: 18px }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0 }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px }
+button:active { transform: scale(.97) }
+
+/* topo */
+.top { display: flex; align-items: center; gap: 14px }
+.top .titles { flex: 1; min-width: 0 }
+.eyebrow { font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: .02em }
+h1 { font-size: 28px; font-weight: 700; line-height: 1.15; margin: 2px 0 0 }
+.prog { position: relative; width: 76px; height: 76px; flex-shrink: 0 }
+.prog svg { width: 100%; height: 100%; transform: rotate(-90deg) }
+.prog .num { position: absolute; inset: 0; display: grid; place-items: center; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums }
+.prog.full .num { color: var(--on-accent) }
+.prog.pop { animation: pop .5s ease }
+@keyframes pop { 40% { transform: scale(1.18) } }
+
+/* semana */
+.weekbar { display: flex; align-items: center; gap: 4px }
+.arrow { width: 40px; height: 64px; border-radius: 14px; font-size: 26px; color: var(--muted); flex-shrink: 0 }
+.week { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; min-width: 0 }
+.day { border-radius: 16px; padding: 8px 0; display: grid; justify-items: center; gap: 2px; min-width: 0 }
+.day .wd { font-size: 13px; text-transform: uppercase; color: var(--muted); font-weight: 700 }
+.day .dn { font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums }
+.day .dot { width: 8px; height: 8px; border-radius: 50%; background: transparent; margin-top: 2px }
+.day .dot.part { background: var(--line) }
+.day .dot.full { background: var(--accent) }
+.day.today .dn { color: var(--accent) }
+.day.sel { background: var(--accent); }
+.day.sel .wd, .day.sel .dn { color: var(--on-accent) }
+.day.sel .dot.full, .day.sel .dot.part { background: var(--on-accent) }
+.today-btn { justify-self: center; height: 40px; padding: 0 18px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 16px }
+
+/* lista */
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
+.list.slide-l { animation: slideL .22s ease } .list.slide-r { animation: slideR .22s ease }
+@keyframes slideL { from { opacity: 0; transform: translateX(30px) } }
+@keyframes slideR { from { opacity: 0; transform: translateX(-30px) } }
+.item { display: flex; align-items: stretch; background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; transition: opacity .25s }
+.row { flex: 1; min-width: 0; display: flex; align-items: center; gap: 16px; padding: 16px 6px 16px 16px; text-align: left; min-height: 78px }
+.row:active { transform: none; background: var(--accent-soft) }
+.check { width: 40px; height: 40px; border-radius: 50%; border: 3px solid var(--line); display: grid; place-items: center; flex-shrink: 0; transition: background .15s, border-color .15s }
+.check svg { width: 22px; height: 22px; opacity: 0; transform: scale(.5); transition: .18s }
+.item.done .check { background: var(--accent); border-color: var(--accent) }
+.item.done .check svg { opacity: 1; transform: none }
+.item.just .check { animation: pop .4s ease }
+.body { min-width: 0; display: grid; gap: 2px }
+.title { font-size: 20px; font-weight: 600; overflow-wrap: anywhere; line-height: 1.25 }
+.when { display: flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 600; color: var(--muted); font-variant-numeric: tabular-nums }
+.when svg { width: 18px; height: 18px }
+.item.done { opacity: .55; box-shadow: none }
+.item.done .title { text-decoration: line-through }
+.item.next { box-shadow: 0 0 0 3px var(--now), var(--shadow) }
+.item.next .when { color: var(--now) }
+.edit { width: 58px; flex-shrink: 0; display: grid; place-items: center; color: var(--muted) }
+.edit svg { width: 24px; height: 24px }
+.edit:active { background: var(--accent-soft) }
+
+.done-label { font-size: 15px; font-weight: 700; color: var(--muted); margin: 8px 4px 0 }
+
+.celebrate { display: flex; align-items: center; gap: 14px; background: var(--accent); color: var(--on-accent); border-radius: 20px; padding: 18px 20px; font-size: 20px; font-weight: 700; animation: pop .5s ease }
+.celebrate small { display: block; font-size: 15px; font-weight: 500; opacity: .9 }
+.celebrate .big { font-size: 34px; line-height: 1 }
+
+.empty { text-align: center; padding: 30px 8px; display: grid; gap: 14px; justify-items: center; color: var(--muted) }
+.empty h2 { font-size: 24px; font-weight: 700; color: var(--ink); margin: 0 }
+.empty p { margin: 0; max-width: 30ch }
+.btn { min-height: 54px; padding: 0 22px; border-radius: 16px; background: var(--surface); border: 2px solid var(--line); font-weight: 700; font-size: 18px }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.btn.danger { color: var(--danger); border-color: var(--danger-soft); background: var(--danger-soft) }
+.link { justify-self: center; color: var(--muted); font-size: 16px; font-weight: 600; text-decoration: underline; padding: 10px }
+
+.status { display: grid; gap: 10px; border-radius: 20px; padding: 16px; background: var(--now-soft); border: 2px solid var(--now) }
+.status h3 { margin: 0; font-size: 19px; font-weight: 700 }
+.status p { margin: 0; font-size: 16px; color: var(--muted) }
+
+.fab { position: fixed; right: max(18px, calc(env(safe-area-inset-right, 0px) + 18px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 22px);
+  width: 72px; height: 72px; border-radius: 24px; background: var(--accent); color: var(--on-accent); box-shadow: var(--shadow); display: grid; place-items: center; z-index: 5 }
+.fab svg { width: 34px; height: 34px }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 108px); background: var(--ink); color: var(--bg); padding: 12px 18px; border-radius: 14px; font-size: 16px; font-weight: 600; z-index: 40; max-width: calc(100% - 32px); text-align: center }
+
+/* formulário */
+.overlay { position: fixed; inset: 0; background: rgba(8,16,12,.5); z-index: 20; display: flex; align-items: flex-end; justify-content: center }
+.sheet { width: 100%; max-width: 600px; background: var(--surface); border-radius: 26px 26px 0 0; max-height: 94%; overflow-y: auto;
+  padding: 22px max(18px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 22px) max(18px, env(safe-area-inset-left, 0px)); display: grid; gap: 20px; animation: up .22s ease }
+@keyframes up { from { transform: translateY(40px); opacity: 0 } }
+.sheet h2 { font-size: 24px; font-weight: 700; margin: 0 }
+.field { display: grid; gap: 8px }
+.lbl { font-size: 16px; font-weight: 700; color: var(--muted) }
+input[type=text], input[type=time], input[type=date] { font: inherit; font-size: 20px; height: 58px; padding: 0 16px; border-radius: 16px; border: 2px solid var(--line); background: var(--bg); color: var(--ink); width: 100%; min-width: 0 }
+input[type=time] { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums }
+.opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px }
+.opts label { position: relative }
+.opts input, .wds input { position: absolute; opacity: 0; pointer-events: none }
+.opts span { display: grid; place-items: center; gap: 4px; min-height: 64px; padding: 8px 4px; border-radius: 16px; border: 2px solid var(--line); font-weight: 700; font-size: 16px; text-align: center; line-height: 1.2 }
+.opts span svg { width: 24px; height: 24px }
+.opts input:checked + span { background: var(--accent-soft); border-color: var(--accent); color: var(--accent) }
+.wds { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px }
+.wds label { position: relative }
+.wds span { display: grid; place-items: center; height: 52px; border-radius: 14px; border: 2px solid var(--line); font-weight: 700; font-size: 15px; text-transform: uppercase }
+.wds input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--on-accent) }
+.actions { display: flex; gap: 10px; flex-wrap: wrap }
+.actions .btn.primary { flex: 1 }
+.err { color: var(--danger); font-size: 16px; font-weight: 600; margin: 0 }
+
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important } }
+
+/* ---------- cores por tipo ---------- */
+.item.colored { box-shadow: inset 6px 0 0 var(--tc), var(--shadow) }
+.item.colored.next { box-shadow: inset 6px 0 0 var(--tc), 0 0 0 3px var(--now), var(--shadow) }
+.item.skipped { opacity: .45; box-shadow: none }
+.item.skipped .check { border-style: dashed }
+.colors { display: flex; gap: 10px; flex-wrap: wrap }
+.colors label { position: relative }
+.colors input { position: absolute; opacity: 0; pointer-events: none }
+.colors span { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; border: 3px solid transparent; background: var(--c); color: var(--muted); font-size: 22px }
+.colors span.none { background: var(--bg); border-color: var(--line) }
+.colors input:checked + span { border-color: var(--ink); transform: scale(1.08) }
+.switch { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; border: 2px solid var(--line); font-weight: 600; font-size: 17px }
+.switch input { width: 26px; height: 26px; accent-color: var(--accent); margin: 0; flex-shrink: 0 }
+.mic-wide { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; border-radius: 16px; background: var(--accent-soft); color: var(--accent); font-weight: 700; font-size: 18px }
+.mic-wide svg, .mini svg { width: 26px; height: 26px }
+.heard { font-size: 15px; color: var(--muted); margin: -8px 0 0; font-style: italic }
+
+/* ---------- barra de baixo ---------- */
+.bottom { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 22px); padding: 0 max(18px, calc(env(safe-area-inset-right, 0px) + 18px)) 0 max(18px, calc(env(safe-area-inset-left, 0px) + 18px));
+  display: flex; align-items: center; gap: 12px; z-index: 5; pointer-events: none }
+.bottom > * { pointer-events: auto }
+.bottom .spacer { flex: 1; pointer-events: none }
+.fab { position: static }
+.mini { width: 60px; height: 60px; border-radius: 20px; background: var(--surface); color: var(--accent); box-shadow: var(--shadow); display: grid; place-items: center }
+.focus-btn { height: 60px; padding: 0 22px; border-radius: 20px; background: var(--now); color: #1D1405; font-weight: 800; font-size: 18px; box-shadow: var(--shadow); display: flex; align-items: center; gap: 8px }
+.focus-btn svg { width: 22px; height: 22px }
+.prog { cursor: pointer }
+
+/* ---------- modo foco ---------- */
+.layer { position: fixed; inset: 0; z-index: 25; background: var(--bg); display: flex; flex-direction: column; animation: up .2s ease;
+  padding: calc(env(safe-area-inset-top, 0px) + 18px) max(20px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 24px) max(20px, env(safe-area-inset-left, 0px)) }
+.layer-top { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.layer-top h2 { margin: 0; font-size: 22px; font-weight: 700 }
+.close { width: 52px; height: 52px; border-radius: 16px; background: var(--surface); font-size: 26px; color: var(--muted) }
+.f-dots { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 14px }
+.f-dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line) }
+.f-dots i.on { background: var(--accent) }
+.f-main { flex: 1; display: grid; align-content: center; justify-items: center; text-align: center; gap: 12px; padding: 20px 0 }
+.f-time { font-size: 26px; font-weight: 800; color: var(--now); font-variant-numeric: tabular-nums }
+.f-title { font-size: clamp(32px, 9vw, 46px); font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; animation: pop .4s ease }
+.f-color { width: 60px; height: 8px; border-radius: 99px; background: var(--tc, transparent) }
+.f-actions { display: grid; gap: 12px }
+.f-done { min-height: 84px; border-radius: 24px; background: var(--accent); color: var(--on-accent); font-size: 26px; font-weight: 800 }
+.f-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px }
+.f-row .btn { min-height: 60px }
+
+/* ---------- progresso ---------- */
+.layer.scroll { overflow-y: auto; display: block }
+.layer.scroll > .inner { max-width: 600px; margin: 0 auto; display: grid; gap: 18px }
+.garden { background: var(--surface); border-radius: 24px; padding: 18px; display: grid; justify-items: center; gap: 6px; text-align: center }
+.garden svg { width: 210px; height: 210px; max-width: 100% }
+.garden .big { font-size: 40px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums }
+.garden .sub { font-size: 17px; color: var(--muted) }
+.garden .rec { font-size: 16px; font-weight: 700; color: var(--now) }
+.cal { background: var(--surface); border-radius: 24px; padding: 16px; display: grid; gap: 10px }
+.cal-head { display: flex; align-items: center; justify-content: space-between }
+.cal-head b { font-size: 19px }
+.cal-head button { width: 44px; height: 44px; border-radius: 14px; font-size: 24px; color: var(--muted) }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px }
+.cal-grid .wdh { text-align: center; font-size: 13px; font-weight: 700; color: var(--muted) }
+.cal-grid button { aspect-ratio: 1; border-radius: 12px; font-size: 15px; font-weight: 700; background: var(--bg); color: var(--muted); font-variant-numeric: tabular-nums }
+.cal-grid button.l1 { background: color-mix(in srgb, var(--accent) 22%, var(--bg)); color: var(--ink) }
+.cal-grid button.l2 { background: color-mix(in srgb, var(--accent) 50%, var(--bg)); color: var(--ink) }
+.cal-grid button.l3 { background: color-mix(in srgb, var(--accent) 75%, var(--bg)); color: var(--on-accent) }
+.cal-grid button.l4 { background: var(--accent); color: var(--on-accent) }
+.cal-grid button.fut { opacity: .4 }
+.cal-grid button.tod { outline: 3px solid var(--now); outline-offset: -3px }
+.legend { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; color: var(--muted) }
+.legend i { width: 16px; height: 16px; border-radius: 5px; display: inline-block }
+.backup { background: var(--surface); border-radius: 24px; padding: 16px; display: grid; gap: 10px }
+.backup h3 { margin: 0; font-size: 19px }
+.backup p { margin: 0; font-size: 15px; color: var(--muted) }
+.backup .btn { width: 100% }
+.file-btn { position: relative; display: grid; place-items: center; overflow: hidden }
+.file-btn input { position: absolute; inset: 0; opacity: 0 }
+
+/* ---------- abas ---------- */
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--surface); border-radius: 18px; padding: 5px }
+.tab { min-height: 50px; border-radius: 14px; font-size: 18px; font-weight: 700; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 8px }
+.tab.on { background: var(--accent); color: var(--on-accent) }
+.tab .badge { min-width: 26px; height: 26px; padding: 0 7px; border-radius: 99px; background: var(--now); color: #1D1405; font-size: 15px; display: grid; place-items: center }
+.tab.on .badge { background: var(--on-accent); color: var(--accent) }
+
+/* ---------- compras ---------- */
+.shop { display: grid; gap: 14px }
+.add-row { display: flex; gap: 10px }
+.add-row input { flex: 1; font: inherit; font-size: 20px; height: 62px; padding: 0 18px; border-radius: 18px; border: 2px solid var(--line); background: var(--surface); color: var(--ink); min-width: 0 }
+.add-row input:focus { border-color: var(--accent); outline: none }
+.add-row button { width: 62px; height: 62px; border-radius: 18px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; flex-shrink: 0 }
+.add-row button.alt { background: var(--surface); color: var(--accent) }
+.add-row button svg { width: 28px; height: 28px }
+.shop-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px }
+.shop-list .item { min-height: 72px }
+.shop-list .row { min-height: 72px; padding-block: 12px }
+.edit-in { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 10px }
+.edit-in input { flex: 1; width: 0; min-width: 0; font: inherit; font-size: 20px; height: 52px; padding: 0 14px; border-radius: 14px; border: 2px solid var(--accent); background: var(--bg); color: var(--ink) }
+.edit-in button { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; flex-shrink: 0 }
+.edit-in .ok { background: var(--accent); color: var(--on-accent) }
+.edit-in .del { background: var(--danger-soft); color: var(--danger) }
+.edit-in svg { width: 24px; height: 24px }
+.shop-empty { text-align: center; color: var(--muted); padding: 34px 10px; display: grid; gap: 8px }
+.shop-empty b { font-size: 22px; color: var(--ink) }
+.clear-btn { justify-self: center; min-height: 52px; padding: 0 20px; border-radius: 16px; border: 2px solid var(--line); font-weight: 700; font-size: 17px; color: var(--muted) }
+.clear-btn.armed { border-color: var(--danger); color: var(--danger); background: var(--danger-soft) }
+body.shop-mode .weekbar, body.shop-mode #goToday, body.shop-mode #celebrate, body.shop-mode #list, body.shop-mode #empty,
+body.shop-mode #testBtn, body.shop-mode #status, body.shop-mode .bottom { display: none !important }
+body:not(.shop-mode) #shop { display: none !important }

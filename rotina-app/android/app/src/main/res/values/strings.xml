@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Minha Rotina</string>
+    <string name="title_activity_main">Minha Rotina</string>
+    <string name="package_name">app.minharotina</string>
+    <string name="custom_url_scheme">app.minharotina</string>
+    <string name="widget_desc">Próxima tarefa da rotina, com botão de feito</string>
+</resources>

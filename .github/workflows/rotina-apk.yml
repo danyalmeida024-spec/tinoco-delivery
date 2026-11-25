@@ -1,0 +1,65 @@
+name: Minha Rotina - gerar APK
+
+on:
+  push:
+    paths:
+      - "rotina-app/**"
+      - ".github/workflows/rotina-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rotina-app
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: rotina-app/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Guardar dependências do Gradle entre compilações
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Copiar o app para o projeto Android
+        run: npm run sync
+
+      - name: Compilar APK
+        working-directory: rotina-app/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon || (sleep 60 && ./gradlew assembleRelease --no-daemon)
+          cp app/build/outputs/apk/release/app-release.apk ../MinhaRotina.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MinhaRotina-apk
+          path: rotina-app/MinhaRotina.apk
+
+      - name: Publicar para download no celular
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: rotina-v1.${{ github.run_number }}
+          name: Minha Rotina 1.${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          body: |
+            App Android Minha Rotina. Baixe o arquivo MinhaRotina.apk abaixo no celular e toque nele para instalar.
+          files: rotina-app/MinhaRotina.apk

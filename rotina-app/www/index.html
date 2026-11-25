@@ -1,0 +1,843 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0E1412">
+<title>Minha Rotina</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div class="wrap" id="main">
+  <header class="top">
+    <div class="titles">
+      <div class="eyebrow" id="eyebrow">Hoje</div>
+      <h1 id="dateTitle">—</h1>
+    </div>
+    <button class="prog" id="prog" aria-label="Ver progresso"></button>
+  </header>
+
+  <div class="tabs" role="tablist" aria-label="Seções">
+    <button class="tab on" id="tabRotina" role="tab" aria-selected="true">Rotina</button>
+    <button class="tab" id="tabCompras" role="tab" aria-selected="false">Compras <span class="badge" id="shopBadge" hidden></span></button>
+  </div>
+
+  <div class="weekbar">
+    <button class="arrow" id="prev" aria-label="Dia anterior">‹</button>
+    <div class="week" id="week" role="tablist" aria-label="Semana"></div>
+    <button class="arrow" id="next" aria-label="Próximo dia">›</button>
+  </div>
+  <button class="today-btn" id="goToday" hidden>Voltar para hoje</button>
+
+  <div class="status" id="status" hidden></div>
+  <div id="celebrate" hidden></div>
+
+  <ul class="list" id="list"></ul>
+  <div class="empty" id="empty" hidden></div>
+  <button class="link" id="testBtn" hidden>Testar despertador</button>
+
+  <section class="shop" id="shop">
+    <form class="add-row" id="shopForm" autocomplete="off">
+      <input type="text" id="shopInput" maxlength="80" placeholder="O que precisa comprar?" enterkeyhint="done" aria-label="Novo item">
+      <button type="button" class="alt" id="shopMic" aria-label="Falar itens" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
+      <button type="submit" aria-label="Adicionar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    </form>
+    <ul class="shop-list" id="shopList"></ul>
+    <div class="shop-empty" id="shopEmpty" hidden><b>Lista vazia</b><span>Escreva ou fale o que precisa comprar.<br>Ex.: "arroz, feijão e leite"</span></div>
+    <button class="clear-btn" id="shopClear" hidden>Limpar comprados</button>
+  </section>
+</div>
+
+<div class="bottom">
+  <button class="focus-btn" id="focusBtn" hidden><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l12-7.5z"/></svg>Foco</button>
+  <span class="spacer"></span>
+  <button class="mini" id="micBtn" aria-label="Adicionar tarefa falando" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button>
+  <button class="fab" id="addBtn" aria-label="Nova tarefa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<!-- formulário -->
+<div class="overlay" id="overlay" hidden>
+  <form class="sheet" id="form" novalidate>
+    <h2 id="formTitle">Nova tarefa</h2>
+    <button type="button" class="mic-wide" id="formMic" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>Falar a tarefa</button>
+    <p class="heard" id="heard" hidden></p>
+    <label class="field"><span class="lbl">O que fazer</span><input type="text" id="f-title" maxlength="120" placeholder="Ex.: Ir à academia" autocomplete="off"></label>
+    <label class="field"><span class="lbl">Horário</span><input type="time" id="f-time"></label>
+    <div class="field">
+      <span class="lbl">Quando</span>
+      <div class="opts">
+        <label><input type="radio" name="rep" id="rep-daily" value="daily"><span>Todo dia</span></label>
+        <label><input type="radio" name="rep" id="rep-weekly" value="weekly"><span>Alguns dias</span></label>
+        <label><input type="radio" name="rep" id="rep-once" value="once"><span>Uma vez</span></label>
+      </div>
+    </div>
+    <div class="field" id="wdField"><div class="wds" id="wds"></div></div>
+    <label class="field" id="dateField"><span class="lbl">Dia</span><input type="date" id="f-date"></label>
+    <div class="field">
+      <span class="lbl">No horário</span>
+      <div class="opts">
+        <label><input type="radio" name="alert" id="al-none" value="none"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M6 18 18 6"/></svg>Nada</span></label>
+        <label><input type="radio" name="alert" id="al-notify" value="notify"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>Aviso</span></label>
+        <label><input type="radio" name="alert" id="al-alarm" value="alarm"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 1.5M5 3.5 2.5 6M19 3.5 21.5 6"/></svg>Despertador</span></label>
+      </div>
+    </div>
+    <label class="switch" id="firmField"><input type="checkbox" id="f-firm"> Só desliga quando eu marcar Feito</label>
+    <div class="field">
+      <span class="lbl">Cor</span>
+      <div class="colors" id="colors"></div>
+    </div>
+    <p class="err" id="formErr" hidden></p>
+    <div class="actions">
+      <button type="button" class="btn" id="cancelBtn">Cancelar</button>
+      <button type="submit" class="btn primary" id="saveBtn">Salvar</button>
+    </div>
+    <button type="button" class="btn" id="skipBtn" hidden>Pular neste dia</button>
+    <button type="button" class="btn danger" id="delBtn" hidden>Excluir tarefa</button>
+  </form>
+</div>
+
+<!-- modo foco -->
+<div class="layer" id="focus" hidden>
+  <div class="layer-top"><h2 id="fCount">Foco</h2><button class="close" id="fClose" aria-label="Fechar">✕</button></div>
+  <div class="f-dots" id="fDots"></div>
+  <div class="f-main" id="fMain"></div>
+  <div class="f-actions" id="fActions">
+    <button class="f-done" id="fDone">Feito ✓</button>
+    <div class="f-row">
+      <button class="btn" id="fLater">Depois</button>
+      <button class="btn" id="fSkip">Pular hoje</button>
+    </div>
+  </div>
+</div>
+
+<!-- progresso -->
+<div class="layer scroll" id="progress" hidden>
+  <div class="inner">
+    <div class="layer-top"><h2>Seu progresso</h2><button class="close" id="pClose" aria-label="Fechar">✕</button></div>
+    <div class="garden" id="garden"></div>
+    <div class="cal" id="cal"></div>
+    <div class="backup">
+      <h3>Cópia de segurança</h3>
+      <p>Guarde sua rotina num arquivo para trocar de celular ou reinstalar sem perder nada.</p>
+      <button class="btn primary" id="exportBtn">Salvar cópia</button>
+      <label class="btn file-btn" id="importLbl">Restaurar cópia<input type="file" id="importFile" accept="application/json,.json,text/plain"></label>
+      <button class="btn danger" id="importConfirm" hidden>Toque para substituir sua rotina</button>
+    </div>
+  </div>
+</div>
+
+<script src="capacitor.js"></script>
+<script>
+(() => {
+  const WD = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+  const WD_LONG = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+  const MONTHS = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+  const COLORS = ["", "#5DC39B", "#6EA8F0", "#B39DF0", "#E3AE58", "#EF8FAE"];
+  const COLOR_NAMES = ["Sem cor", "Verde", "Azul", "Roxo", "Laranja", "Rosa"];
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2, "0");
+  const toStr = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parse = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const addDays = (s, n) => { const d = parse(s); d.setDate(d.getDate() + n); return toStr(d); };
+  const today = () => toStr(new Date());
+  const nowHM = () => { const n = new Date(); return `${pad(n.getHours())}:${pad(n.getMinutes())}`; };
+  const rid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+  const buzz = ms => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+
+  // ---------- ponte com o Android ----------
+  const Cap = window.capacitorExports;
+  const native = !!(Cap && Cap.Capacitor.isNativePlatform());
+  const Prefs = native ? Cap.registerPlugin("Preferences") : null;
+  const Rotina = native ? Cap.registerPlugin("Rotina") : null;
+  const KEY = "rotina-v1";
+
+  const state = { tasks: new Map(), days: new Map(), meta: { best: 0 }, shop: [], tab: "rotina", sel: today() };
+
+  async function load() {
+    try {
+      const raw = Prefs ? (await Prefs.get({ key: KEY })).value : localStorage.getItem(KEY);
+      if (raw) applyData(JSON.parse(raw));
+    } catch (e) {}
+  }
+  function applyData(o) {
+    state.tasks = new Map(o.tasks || []);
+    state.days = new Map(o.days || []);
+    state.meta = Object.assign({ best: 0 }, o.meta || {});
+    state.shop = Array.isArray(o.shop) ? o.shop : [];
+  }
+  const dataBlob = () => ({ app: "minha-rotina", version: 2, tasks: [...state.tasks], days: [...state.days], meta: state.meta, shop: state.shop });
+  let syncTimer = null;
+  async function save() {
+    const raw = JSON.stringify(dataBlob());
+    try { if (Prefs) await Prefs.set({ key: KEY, value: raw }); else localStorage.setItem(KEY, raw); } catch (e) {}
+    clearTimeout(syncTimer); syncTimer = setTimeout(syncNative, 250);
+  }
+  async function syncNative() {
+    if (!Rotina) return;
+    const t0 = today(), tasks = [], skip = [];
+    state.tasks.forEach((t, id) => tasks.push({ id, ...t }));
+    state.days.forEach((v, k) => {
+      const date = k.slice(2);
+      if (date < t0) return;
+      Object.keys(v.done || {}).forEach(id => skip.push(id + "|" + date));
+      Object.keys(v.skip || {}).forEach(id => skip.push(id + "|" + date));
+    });
+    try { await Rotina.sync({ tasks, skip }); } catch (e) { toast("Não consegui agendar os avisos. Abra o app de novo."); }
+    refreshStatus();
+  }
+  async function pullDone() {
+    if (!Rotina) return;
+    try {
+      const { items } = await Rotina.takeDone();
+      if (items && items.length) {
+        items.forEach(({ taskId, date }) => setMark(date, taskId, "done", true));
+        checkRecord(); render(); save();
+      }
+    } catch (e) {}
+  }
+
+  let toastTimer = null;
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 3800); }
+
+  // ---------- regras de agenda ----------
+  function appliesOn(t, ds) {
+    if (t.repeat === "once") return t.date === ds;
+    if (t.start && ds < t.start) return false;
+    if (t.repeat === "daily") return true;
+    if (t.repeat === "weekly") return Array.isArray(t.days) && t.days.includes(parse(ds).getDay());
+    return false;
+  }
+  function tasksFor(ds) {
+    const out = [];
+    state.tasks.forEach((t, id) => { if (appliesOn(t, ds)) out.push({ id, ...t }); });
+    out.sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99") || a.title.localeCompare(b.title));
+    return out;
+  }
+  const dayRec = ds => state.days.get("d-" + ds) || {};
+  const doneMap = ds => dayRec(ds).done || {};
+  const skipMap = ds => dayRec(ds).skip || {};
+  function setMark(ds, id, kind, on) {
+    const r = dayRec(ds), done = { ...(r.done || {}) }, skip = { ...(r.skip || {}) };
+    delete done[id]; delete skip[id];
+    if (on) (kind === "done" ? done : skip)[id] = true;
+    state.days.set("d-" + ds, { done, skip });
+  }
+  function stats(ds) {
+    const sk = skipMap(ds), dm = doneMap(ds), ts = tasksFor(ds).filter(t => !sk[t.id]);
+    return { total: ts.length, done: ts.filter(t => dm[t.id]).length };
+  }
+  function streak() {
+    let ds = today(); const s0 = stats(ds);
+    if (!(s0.total && s0.done === s0.total)) ds = addDays(ds, -1);
+    let n = 0;
+    for (let i = 0; i < 400; i++) { const s = stats(ds); if (s.total) { if (s.done === s.total) n++; else break; } ds = addDays(ds, -1); }
+    return n;
+  }
+  function checkRecord() {
+    const st = streak(), old = state.meta.best || 0;
+    if (st > old) {
+      state.meta.best = st;
+      if (old > 0 && st >= 2) { toast(`Novo recorde: ${st} dias seguidos!`); buzz([30, 50, 30, 50, 60]); }
+    }
+  }
+
+  // ---------- desenho ----------
+  const CHECK = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="color:var(--on-accent)"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+  const ICON_BELL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="com aviso"><path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
+  const ICON_ALARM = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-label="com despertador"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 1.5M5 3.5 2.5 6M19 3.5 21.5 6"/></svg>';
+  const ICON_EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+
+  let lastFull = null, justId = null, slide = "";
+  function renderProg(s) {
+    const r = 32, c = 2 * Math.PI * r, p = s.total ? s.done / s.total : 0, full = s.total > 0 && s.done === s.total;
+    const el = $("prog");
+    el.className = "prog" + (full ? " full" : "");
+    el.hidden = state.tasks.size === 0;
+    el.innerHTML = `<svg viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="${r}" fill="${full ? "var(--accent)" : "none"}" stroke="var(--accent-soft)" stroke-width="8"/>` +
+      (full ? "" : `<circle cx="38" cy="38" r="${r}" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c * p} ${c}"/>`) +
+      `</svg><span class="num">${full ? "✓" : `${s.done}/${s.total}`}</span>`;
+    return full;
+  }
+
+  function render() {
+    if (state.tab === "shop") { renderShop(); return; }
+    renderShop();
+    const sel = state.sel, t0 = today(), d = parse(sel);
+    const diff = Math.round((d - parse(t0)) / 864e5);
+    $("eyebrow").textContent = diff === 0 ? "Hoje" : diff === -1 ? "Ontem" : diff === 1 ? "Amanhã" : WD_LONG[d.getDay()];
+    $("dateTitle").textContent = `${d.getDate()} de ${MONTHS[d.getMonth()]}`;
+    $("goToday").hidden = diff === 0;
+
+    const monday = addDays(sel, -((d.getDay() + 6) % 7));
+    const week = $("week"); week.innerHTML = "";
+    for (let i = 0; i < 7; i++) {
+      const ds = addDays(monday, i), dd = parse(ds), s = stats(ds);
+      const b = document.createElement("button");
+      b.className = "day" + (ds === sel ? " sel" : "") + (ds === t0 ? " today" : "");
+      b.setAttribute("role", "tab"); b.setAttribute("aria-selected", ds === sel);
+      b.setAttribute("aria-label", `${WD_LONG[dd.getDay()]} ${dd.getDate()}: ${s.done} de ${s.total} feitas`);
+      const dot = !s.total ? "" : s.done === s.total ? " full" : " part";
+      b.innerHTML = `<span class="wd">${WD[dd.getDay()]}</span><span class="dn">${dd.getDate()}</span><span class="dot${dot}"></span>`;
+      b.onclick = () => go(ds);
+      week.appendChild(b);
+    }
+
+    const ts = tasksFor(sel), dm = doneMap(sel), sk = skipMap(sel), s = stats(sel);
+    const full = renderProg(s);
+    const cel = $("celebrate");
+    if (full) {
+      const st = streak();
+      cel.hidden = false; cel.className = "celebrate";
+      cel.innerHTML = `<span class="big">🎉</span><span>${diff === 0 ? "Dia completo!" : "Tudo feito neste dia"}${st > 1 && diff === 0 ? `<small>${st} dias seguidos · toque no ✓ para ver seu jardim</small>` : ""}</span>`;
+      if (lastFull === false) { $("prog").classList.add("pop"); buzz([40, 60, 40]); }
+    } else cel.hidden = true;
+    lastFull = full;
+
+    let nextId = null;
+    if (sel === t0) {
+      const hm = nowHM(), n = ts.find(t => !dm[t.id] && !sk[t.id] && t.time && t.time >= hm);
+      if (n) nextId = n.id;
+    }
+
+    const list = $("list"); list.innerHTML = "";
+    list.className = "list" + (slide ? " " + slide : ""); slide = "";
+    const pending = ts.filter(t => !dm[t.id] && !sk[t.id]), closed = ts.filter(t => dm[t.id] || sk[t.id]);
+    const addItem = t => {
+      const li = document.createElement("li"), isDone = !!dm[t.id], isSkip = !!sk[t.id];
+      li.className = "item" + (isDone ? " done" : "") + (isSkip ? " skipped" : "") + (t.id === nextId ? " next" : "") + (t.id === justId ? " just" : "") + (t.color ? " colored" : "");
+      if (t.color) li.style.setProperty("--tc", COLORS[t.color]);
+      const row = document.createElement("button");
+      row.className = "row"; row.setAttribute("aria-pressed", isDone);
+      row.setAttribute("aria-label", (isSkip ? "Pulada, toque para desfazer: " : isDone ? "Feita: " : "Marcar como feita: ") + t.title + (t.time ? ", " + t.time : ""));
+      row.onclick = () => isSkip ? unskip(t.id) : toggle(t.id);
+      const chk = document.createElement("span"); chk.className = "check"; chk.innerHTML = CHECK;
+      const body = document.createElement("span"); body.className = "body";
+      const ti = document.createElement("span"); ti.className = "title"; ti.textContent = t.title;
+      body.append(ti);
+      if (t.time || isSkip) {
+        const w = document.createElement("span"); w.className = "when";
+        w.textContent = isSkip ? "Pulada hoje" : (t.id === nextId ? "Próxima · " : "") + t.time;
+        if (!isSkip && t.alert === "alarm") w.insertAdjacentHTML("beforeend", ICON_ALARM);
+        else if (!isSkip && t.alert === "notify") w.insertAdjacentHTML("beforeend", ICON_BELL);
+        body.append(w);
+      }
+      row.append(chk, body);
+      const ed = document.createElement("button"); ed.className = "edit"; ed.innerHTML = ICON_EDIT;
+      ed.setAttribute("aria-label", "Editar " + t.title); ed.onclick = () => openSheet(t.id);
+      li.append(row, ed);
+      list.appendChild(li);
+    };
+    pending.forEach(addItem);
+    if (closed.length && pending.length) {
+      const lb = document.createElement("li"); lb.className = "done-label"; lb.textContent = "Feitas";
+      list.appendChild(lb);
+    }
+    closed.forEach(addItem);
+    justId = null;
+
+    const empty = $("empty");
+    if (state.tasks.size === 0) {
+      empty.hidden = false;
+      empty.innerHTML = `<h2>Monte sua rotina</h2><p>Toque no + ou no microfone para adicionar sua primeira tarefa.</p>`;
+      const b1 = document.createElement("button"); b1.className = "btn primary"; b1.textContent = "Adicionar tarefa"; b1.onclick = () => openSheet(null);
+      const b2 = document.createElement("button"); b2.className = "btn"; b2.textContent = "Usar rotina de exemplo"; b2.onclick = seedExample;
+      empty.append(b1, b2);
+    } else if (ts.length === 0) {
+      empty.hidden = false; empty.innerHTML = `<h2>Dia livre</h2><p>Nada marcado para este dia.</p>`;
+    } else empty.hidden = true;
+    $("testBtn").hidden = !native || ![...state.tasks.values()].some(t => t.alert === "alarm");
+    $("focusBtn").hidden = !(sel === t0 && pending.length > 0);
+    $("micBtn").hidden = !native;
+    renderStatus();
+  }
+
+  function go(ds) {
+    if (ds === state.sel) return;
+    slide = ds > state.sel ? "slide-l" : "slide-r";
+    state.sel = ds; lastFull = null; buzz(8); render();
+  }
+
+  // ---------- aviso de permissão (só aparece se faltar algo) ----------
+  let perm = null;
+  async function refreshStatus() {
+    if (!Rotina) return;
+    try { perm = await Rotina.status(); } catch (e) { perm = null; }
+    renderStatus();
+  }
+  function renderStatus() {
+    const box = $("status");
+    const hasAlerts = [...state.tasks.values()].some(t => t.time && t.alert && t.alert !== "none");
+    if (!native || !perm || !hasAlerts) { box.hidden = true; return; }
+    let title, text, fn;
+    if (!perm.notifications) {
+      title = "Avisos desligados"; text = "Sem essa permissão o despertador não toca.";
+      fn = async () => { try { const r = await Rotina.requestNotifications(); if (!r.granted) await Rotina.openSettings({ what: "notifications" }); } catch (e) {} refreshStatus(); };
+    } else if (!perm.exact) {
+      title = "Alarme pode atrasar"; text = "Permita alarmes no horário exato.";
+      fn = () => Rotina.openSettings({ what: "exact" });
+    } else if (!perm.fullScreen) {
+      title = "Despertador sem tela cheia"; text = "Permita para ele aparecer com a tela bloqueada.";
+      fn = () => Rotina.openSettings({ what: "fullscreen" });
+    } else { box.hidden = true; return; }
+    box.hidden = false; box.innerHTML = "";
+    const h = document.createElement("h3"); h.textContent = title;
+    const p = document.createElement("p"); p.textContent = text;
+    const b = document.createElement("button"); b.className = "btn primary"; b.textContent = "Permitir"; b.onclick = fn;
+    box.append(h, p, b);
+  }
+  $("testBtn").onclick = async () => {
+    try { await Rotina.test({ seconds: 10 }); toast("O despertador toca em 10 segundos. Pode bloquear a tela."); }
+    catch (e) { toast("Não consegui agendar o teste."); }
+  };
+
+  function toggle(id) {
+    const on = !doneMap(state.sel)[id];
+    setMark(state.sel, id, "done", on);
+    if (on) { justId = id; buzz(25); }
+    checkRecord(); render(); save();
+  }
+  function unskip(id) { setMark(state.sel, id, "skip", false); buzz(10); render(); save(); }
+
+  // ---------- camadas (o botão voltar do Android fecha a de cima) ----------
+  const stack = [];
+  function openLayer(el) {
+    el.hidden = false; stack.push(el);
+    try { history.pushState({ layer: el.id }, ""); } catch (e) {}
+  }
+  function hideTop() { const el = stack.pop(); if (el) { el.hidden = true; onLayerClosed(el); } }
+  function closeLayer() {
+    if (!stack.length) return;
+    if (history.state && history.state.layer) history.back(); else hideTop();
+  }
+  window.addEventListener("popstate", () => { if (stack.length) hideTop(); });
+  function onLayerClosed(el) { if (el.id === "overlay") editing = null; render(); }
+
+  // ---------- modo foco: uma tarefa de cada vez ----------
+  let fq = [], fTotal = 0;
+  function openFocus() {
+    const t0 = today(), dm = doneMap(t0), sk = skipMap(t0);
+    const all = tasksFor(t0).filter(t => !sk[t.id]);
+    fq = all.filter(t => !dm[t.id]);
+    fTotal = all.length;
+    openLayer($("focus")); showFocus();
+  }
+  function showFocus() {
+    const t0 = today(), dm = doneMap(t0), sk = skipMap(t0);
+    const done = tasksFor(t0).filter(t => dm[t.id] && !sk[t.id]).length;
+    $("fCount").textContent = `${done} de ${fTotal} feitas`;
+    $("fDots").innerHTML = Array.from({ length: fTotal }, (_, i) => `<i class="${i < done ? "on" : ""}"></i>`).join("");
+    const main = $("fMain");
+    main.innerHTML = "";
+    if (!fq.length) {
+      $("fActions").hidden = true;
+      main.innerHTML = `<div class="f-title">🎉<br>Tudo feito!</div><p style="color:var(--muted);font-size:19px;margin:0">Bom trabalho hoje.</p>`;
+      const b = document.createElement("button"); b.className = "btn primary"; b.textContent = "Fechar"; b.onclick = closeLayer;
+      main.appendChild(b);
+      return;
+    }
+    $("fActions").hidden = false;
+    const t = fq[0];
+    if (t.color) { const c = document.createElement("div"); c.className = "f-color"; c.style.setProperty("--tc", COLORS[t.color]); main.appendChild(c); }
+    const tm = document.createElement("div"); tm.className = "f-time"; tm.textContent = t.time ? `Às ${t.time}` : "Sem horário";
+    const ti = document.createElement("div"); ti.className = "f-title"; ti.textContent = t.title;
+    main.append(tm, ti);
+    $("fLater").hidden = fq.length < 2;
+  }
+  $("focusBtn").onclick = openFocus;
+  $("fClose").onclick = closeLayer;
+  $("fDone").onclick = () => { const t = fq.shift(); setMark(today(), t.id, "done", true); buzz(30); checkRecord(); save(); showFocus(); };
+  $("fSkip").onclick = () => { const t = fq.shift(); setMark(today(), t.id, "skip", true); fTotal--; buzz(10); save(); showFocus(); };
+  $("fLater").onclick = () => { fq.push(fq.shift()); buzz(8); showFocus(); };
+
+  // ---------- progresso: jardim, recorde e calendário ----------
+  let calMonth = today().slice(0, 7);
+  function plantSVG(n) {
+    const leaf = "#5DC39B", stem = "#3E9C76", pot = "#9A6343", potDark = "#7A4B31";
+    let g = `<svg viewBox="0 0 200 200" role="img" aria-label="Planta com ${n} dias">`;
+    g += `<path d="M58 150h84l-10 42H68z" fill="${pot}"/><rect x="52" y="142" width="96" height="14" rx="5" fill="${potDark}"/>`;
+    if (n === 0) return g + `<ellipse cx="100" cy="140" rx="9" ry="6" fill="#C9A26B"/></svg>`;
+    const h = Math.min(20 + n * 4, 125), top = 142 - h;
+    g += `<path d="M100 142 C96 ${142 - h * 0.4} 104 ${142 - h * 0.7} 100 ${top}" stroke="${stem}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+    const leaves = Math.min(1 + Math.floor(n / 2), 8);
+    for (let i = 0; i < leaves; i++) {
+      const y = 142 - h * (i + 1) / (leaves + 1), side = i % 2 ? 1 : -1, size = 11 + Math.min(n, 20) * 0.35;
+      g += `<ellipse cx="${100 + side * size}" cy="${y}" rx="${size}" ry="${size * 0.45}" fill="${leaf}" transform="rotate(${side * -28} ${100 + side * size} ${y})"/>`;
+    }
+    const flower = (cx, cy, r, col) => {
+      let f = "";
+      for (let k = 0; k < 5; k++) { const a = k * 72 * Math.PI / 180; f += `<circle cx="${cx + Math.cos(a) * r}" cy="${cy + Math.sin(a) * r}" r="${r * 0.8}" fill="${col}"/>`; }
+      return f + `<circle cx="${cx}" cy="${cy}" r="${r * 0.6}" fill="#F3C44F"/>`;
+    };
+    if (n >= 7) g += flower(100, top, 11, "#EF8FAE");
+    if (n >= 14) g += `<path d="M100 ${142 - h * 0.55} q-22 -8 -30 -26" stroke="${stem}" stroke-width="4" fill="none"/>` + flower(70, 142 - h * 0.55 - 26, 8, "#B39DF0");
+    if (n >= 30) g += `<path d="M100 ${142 - h * 0.4} q22 -6 30 -22" stroke="${stem}" stroke-width="4" fill="none"/>` + flower(130, 142 - h * 0.4 - 22, 8, "#6EA8F0");
+    return g + "</svg>";
+  }
+  function renderProgress() {
+    const st = streak(), best = Math.max(state.meta.best || 0, st);
+    const msg = st === 0 ? "Complete um dia inteiro para a semente brotar."
+      : st < 7 ? `Faltam ${7 - st} ${7 - st === 1 ? "dia" : "dias"} para florescer.`
+      : st < 14 ? "Floresceu! Com 14 dias nasce outra flor."
+      : st < 30 ? "Lindo! Com 30 dias o jardim fica completo." : "Jardim completo. Parabéns!";
+    $("garden").innerHTML = plantSVG(st) +
+      `<div class="big">${st} ${st === 1 ? "dia" : "dias"}</div><div class="sub">${msg}</div>` +
+      (best > 0 ? `<div class="rec">Seu recorde: ${best} ${best === 1 ? "dia" : "dias"} seguidos</div>` : "");
+
+    const [y, m] = calMonth.split("-").map(Number), first = new Date(y, m - 1, 1), days = new Date(y, m, 0).getDate();
+    const t0 = today(), cal = $("cal"); cal.innerHTML = "";
+    const head = document.createElement("div"); head.className = "cal-head";
+    const pv = document.createElement("button"); pv.textContent = "‹"; pv.setAttribute("aria-label", "Mês anterior");
+    const nx = document.createElement("button"); nx.textContent = "›"; nx.setAttribute("aria-label", "Próximo mês");
+    const tt = document.createElement("b"); tt.textContent = `${MONTHS[m - 1][0].toUpperCase() + MONTHS[m - 1].slice(1)} ${y}`;
+    pv.onclick = () => { calMonth = toStr(new Date(y, m - 2, 1)).slice(0, 7); renderProgress(); };
+    nx.onclick = () => { calMonth = toStr(new Date(y, m, 1)).slice(0, 7); renderProgress(); };
+    head.append(pv, tt, nx);
+    const grid = document.createElement("div"); grid.className = "cal-grid";
+    ["S", "T", "Q", "Q", "S", "S", "D"].forEach(l => { const s = document.createElement("span"); s.className = "wdh"; s.textContent = l; grid.appendChild(s); });
+    for (let i = 0; i < (first.getDay() + 6) % 7; i++) grid.appendChild(document.createElement("span"));
+    for (let dnum = 1; dnum <= days; dnum++) {
+      const ds = `${y}-${pad(m)}-${pad(dnum)}`, s = stats(ds), b = document.createElement("button");
+      let lvl = "";
+      if (ds > t0) lvl = "fut";
+      else if (s.total) { const r = s.done / s.total; lvl = r === 1 ? "l4" : r >= 0.66 ? "l3" : r >= 0.33 ? "l2" : r > 0 ? "l1" : ""; }
+      b.className = lvl + (ds === t0 ? " tod" : "");
+      b.textContent = dnum;
+      b.setAttribute("aria-label", `${dnum}: ${s.done} de ${s.total}`);
+      b.onclick = () => { state.sel = ds; closeLayer(); };
+      grid.appendChild(b);
+    }
+    const lg = document.createElement("div"); lg.className = "legend";
+    lg.innerHTML = `Pouco <i style="background:var(--bg)"></i><i style="background:color-mix(in srgb,var(--accent) 22%,var(--bg))"></i><i style="background:color-mix(in srgb,var(--accent) 50%,var(--bg))"></i><i style="background:color-mix(in srgb,var(--accent) 75%,var(--bg))"></i><i style="background:var(--accent)"></i> Tudo`;
+    cal.append(head, grid, lg);
+  }
+  $("prog").onclick = () => { if (state.tab === "shop") return; calMonth = today().slice(0, 7); renderProgress(); $("importConfirm").hidden = true; openLayer($("progress")); };
+  $("pClose").onclick = closeLayer;
+
+  // ---------- cópia de segurança ----------
+  $("exportBtn").onclick = async () => {
+    const data = JSON.stringify(dataBlob(), null, 1), name = `MinhaRotina-${today()}.json`;
+    if (!Rotina) { toast("A cópia funciona no app Android."); return; }
+    try { const r = await Rotina.saveBackup({ name, data }); if (r.where === "Downloads") toast(`Cópia salva em Downloads: ${name}`); }
+    catch (e) { toast("Não consegui salvar a cópia."); }
+  };
+  let pendingImport = null;
+  $("importFile").onchange = e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = "";
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      try {
+        const o = JSON.parse(rd.result);
+        if (o.app !== "minha-rotina" || !Array.isArray(o.tasks)) throw 0;
+        pendingImport = o;
+        const b = $("importConfirm"); b.hidden = false;
+        b.textContent = `Substituir pela cópia (${o.tasks.length} tarefas)`;
+      } catch (err) { toast("Esse arquivo não é uma cópia do Minha Rotina."); }
+    };
+    rd.readAsText(f);
+  };
+  $("importConfirm").onclick = () => {
+    if (!pendingImport) return;
+    applyData(pendingImport); pendingImport = null;
+    $("importConfirm").hidden = true;
+    save(); renderProgress(); renderShop(); toast("Rotina restaurada.");
+  };
+
+  // ---------- voz ----------
+  const NUM = { uma: 1, um: 1, duas: 2, dois: 2, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, onze: 11, doze: 12 };
+  const strip = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  function parseVoice(text) {
+    // trabalha numa versão sem acentos, mas recorta o texto original nas mesmas posições
+    let rest = " " + text.normalize("NFC").trim() + " ";
+    const low = () => strip(rest);
+    const cut = re => { const m = low().match(re); if (!m) return null; rest = rest.slice(0, m.index) + " " + rest.slice(m.index + m[0].length); return m; };
+    const out = { title: "", time: "", repeat: "daily", days: [], date: "", alert: "" };
+
+    if (cut(/\s(com |e )?(despertador|alarme)\b/) || /\b(me acord|despert)/.test(low())) out.alert = "alarm";
+    else if (cut(/\s(com |e )?(aviso|lembrete)\b/) || /\b(me avis|me lembr)/.test(low())) out.alert = "notify";
+    cut(/\s(me avis[ae]|me lembr[ae]|me acord[ae]|lembrar de|lembrete de|preciso)\b/);
+
+    let h = null, mi = 0, m;
+    if ((m = cut(/\s(?:ao |as |a )?meio[ -]dia(\s+e\s+meia)?/))) { h = 12; mi = m[1] ? 30 : 0; }
+    else if ((m = cut(/\s(?:a )?meia[ -]noite/))) { h = 0; }
+    else if ((m = cut(/\s(?:as |a |para as |pras )?(\d{1,2})\s*(?::|h)\s*(\d{2})\b/))) { h = +m[1]; mi = +m[2]; }
+    else if ((m = cut(/\s(?:as|a|para as|pras)\s+(\d{1,2}|uma|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze)(\s+e\s+meia|\s+e\s+(\d{1,2}))?(\s*(?:h|horas?)\b)?/))) {
+      h = isNaN(+m[1]) ? NUM[m[1]] : +m[1]; mi = m[2] ? (m[3] ? +m[3] : 30) : 0;
+    } else if ((m = cut(/\s(\d{1,2})\s*(?:h|horas)\b(\s+e\s+meia)?/))) { h = +m[1]; mi = m[2] ? 30 : 0; }
+    if (h !== null) {
+      if (cut(/\s(da|de)\s+(tarde|noite)\b/) && h < 12) h += 12;
+      cut(/\s(da|de)\s+manha\b/);
+      if (h <= 23 && mi <= 59) out.time = `${pad(h)}:${pad(mi)}`;
+    }
+
+    const WDN = [["domingo", 0], ["segunda", 1], ["terca", 2], ["quarta", 3], ["quinta", 4], ["sexta", 5], ["sabado", 6]];
+    if (cut(/\s(todo(s)? (o )?dia(s)?|diariamente)\b/)) out.repeat = "daily";
+    else if (cut(/\s(nos |de |em )?dias? (uteis|de semana)\b|\s(de )?segunda a sexta(-feira)?\b/)) { out.repeat = "weekly"; out.days = [1, 2, 3, 4, 5]; }
+    else if (cut(/\s(no |nos |aos )?fi(m|ns) de semana\b/)) { out.repeat = "weekly"; out.days = [6, 0]; }
+    else if (cut(/\sdepois de amanha\b/)) { out.repeat = "once"; out.date = addDays(today(), 2); }
+    else if (cut(/\samanha\b/)) { out.repeat = "once"; out.date = addDays(today(), 1); }
+    else if (cut(/\s(hoje|agora)\b/)) { out.repeat = "once"; out.date = today(); }
+    else {
+      const found = [];
+      WDN.forEach(([w, n]) => { if (cut(new RegExp(`\\s(toda |todas as |toda a |na |no |nas |nos |aos |as |e )?${w}s?(-feiras?| feiras?)?\\b`))) found.push(n); });
+      if (found.length) { out.repeat = "weekly"; out.days = found; }
+    }
+
+    let t = rest.replace(/\s+/g, " ").trim();
+    const filler = /^(e|de|da|do|na|no|nas|nos|a|as|às|o|os|para|pra|em|com|que|eu|tenho que|quero)\s+|\s+(e|de|da|do|na|no|nas|nos|a|as|às|o|os|para|pra|em|com)$/i;
+    for (let i = 0; i < 6; i++) t = t.replace(filler, "").replace(/[,.;]+$/, "").replace(/^[,.;]+/, "").trim();
+    out.title = t ? t[0].toUpperCase() + t.slice(1) : (/\b(me acord|acordar)/.test(strip(text)) ? "Acordar" : "");
+    if (!out.alert) out.alert = out.time ? "notify" : "none";
+    return out;
+  }
+  async function listen() {
+    if (!Rotina) { toast("A voz funciona no app Android."); return null; }
+    try { const { text } = await Rotina.listen(); return text || null; }
+    catch (e) { if (e && e.code !== "CANCELLED") toast(e.message || "Não consegui ouvir."); return null; }
+  }
+  async function voiceToForm() {
+    const text = await listen(); if (!text) return;
+    const p = parseVoice(text);
+    if ($("overlay").hidden) openSheet(null);
+    fillForm(p);
+    const h = $("heard"); h.hidden = false; h.textContent = `Ouvi: "${text}"`;
+    buzz(15);
+  }
+  $("micBtn").onclick = voiceToForm;
+  $("formMic").onclick = voiceToForm;
+
+  function seedExample() {
+    const s = today();
+    [
+      ["Acordar e beber água", "06:30", "daily", null, "alarm", 2],
+      ["Exercício", "07:00", "weekly", [1, 3, 5], "notify", 1],
+      ["Café da manhã", "07:30", "daily", null, "none", 4],
+      ["Revisar tarefas do dia", "08:00", "weekly", [1, 2, 3, 4, 5], "notify", 3],
+      ["Almoço", "12:00", "daily", null, "none", 4],
+      ["Ler 20 minutos", "21:00", "daily", null, "notify", 5],
+      ["Preparar o dia seguinte", "22:00", "daily", null, "notify", 3],
+    ].forEach(([title, time, repeat, days, alert, color]) => {
+      state.tasks.set("t-" + rid(), { title, time, repeat, days: days || [], start: s, date: "", alert, color, firm: false });
+    });
+    render(); save();
+    if (Rotina) Rotina.requestNotifications().then(refreshStatus).catch(() => {});
+  }
+
+  // ---------- formulário ----------
+  let editing = null, delArmed = false;
+  const wds = $("wds");
+  [1, 2, 3, 4, 5, 6, 0].forEach(n => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="checkbox" id="wd-${n}" value="${n}"><span>${WD[n]}</span>`;
+    wds.appendChild(l);
+  });
+  COLORS.forEach((c, i) => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="radio" name="color" id="col-${i}" value="${i}"><span class="${i ? "" : "none"}" style="--c:${c || "transparent"}" aria-label="${COLOR_NAMES[i]}">${i ? "" : "–"}</span>`;
+    $("colors").appendChild(l);
+  });
+  function syncForm() {
+    const r = document.querySelector('input[name="rep"]:checked').value;
+    const a = document.querySelector('input[name="alert"]:checked').value;
+    $("wdField").hidden = r !== "weekly";
+    $("dateField").hidden = r !== "once";
+    $("firmField").hidden = a !== "alarm";
+  }
+  document.querySelectorAll('input[name="rep"], input[name="alert"]').forEach(i => i.onchange = syncForm);
+
+  function fillForm(t) {
+    if (t.title) $("f-title").value = t.title;
+    if (t.time) $("f-time").value = t.time;
+    $("rep-" + (t.repeat || "daily")).checked = true;
+    if (t.repeat === "once" && t.date) $("f-date").value = t.date;
+    if (t.repeat === "weekly") for (let n = 0; n < 7; n++) $("wd-" + n).checked = t.days.includes(n);
+    if (t.alert) $("al-" + t.alert).checked = true;
+    syncForm();
+  }
+  function openSheet(id) {
+    editing = id; delArmed = false;
+    const t = id ? state.tasks.get(id) : null;
+    $("formTitle").textContent = t ? "Editar tarefa" : "Nova tarefa";
+    $("f-title").value = t ? t.title : "";
+    $("f-time").value = t ? t.time : "";
+    $("f-date").value = t && t.repeat === "once" ? t.date : state.sel;
+    $("rep-" + (t ? t.repeat : "daily")).checked = true;
+    $("al-" + (t ? (t.alert || "none") : "notify")).checked = true;
+    $("f-firm").checked = !!(t && t.firm);
+    $("col-" + (t && t.color ? t.color : 0)).checked = true;
+    const days = t && t.repeat === "weekly" ? t.days : [parse(state.sel).getDay()];
+    for (let n = 0; n < 7; n++) $("wd-" + n).checked = days.includes(n);
+    $("delBtn").hidden = !t; $("delBtn").textContent = "Excluir tarefa";
+    const canSkip = !!t && appliesOn(t, state.sel) && !doneMap(state.sel)[id];
+    $("skipBtn").hidden = !canSkip;
+    if (canSkip) $("skipBtn").textContent = skipMap(state.sel)[id] ? "Desfazer pular" : (state.sel === today() ? "Pular só hoje" : "Pular neste dia");
+    $("formMic").hidden = !native || !!t;
+    $("heard").hidden = true;
+    $("formErr").hidden = true;
+    syncForm();
+    openLayer($("overlay"));
+  }
+  $("cancelBtn").onclick = closeLayer;
+  $("overlay").addEventListener("click", e => { if (e.target === $("overlay")) closeLayer(); });
+
+  $("form").addEventListener("submit", async e => {
+    e.preventDefault();
+    const title = $("f-title").value.trim();
+    const repeat = document.querySelector('input[name="rep"]:checked').value;
+    const alert = document.querySelector('input[name="alert"]:checked').value;
+    const color = +document.querySelector('input[name="color"]:checked').value;
+    const days = [...wds.querySelectorAll("input:checked")].map(i => Number(i.value));
+    const date = $("f-date").value || state.sel;
+    const time = $("f-time").value || "";
+    const err = $("formErr");
+    if (!title) { err.textContent = "Escreva o nome da tarefa."; err.hidden = false; return; }
+    if (repeat === "weekly" && !days.length) { err.textContent = "Escolha pelo menos um dia da semana."; err.hidden = false; return; }
+    if (alert !== "none" && !time) { err.textContent = "Para avisar ou despertar, escolha um horário."; err.hidden = false; return; }
+    const id = editing || "t-" + rid();
+    const prev = editing ? state.tasks.get(editing) : null;
+    const start = repeat === "once" ? "" : (prev && prev.start && prev.repeat !== "once" ? prev.start : state.sel);
+    state.tasks.set(id, { title, time, alert, firm: alert === "alarm" && $("f-firm").checked, color, repeat, days: repeat === "weekly" ? days : [], date: repeat === "once" ? date : "", start });
+    if (repeat === "once") state.sel = date;
+    closeLayer(); save();
+    if (alert !== "none" && Rotina && perm && !perm.notifications) { try { await Rotina.requestNotifications(); } catch (e) {} refreshStatus(); }
+  });
+  $("skipBtn").onclick = () => {
+    const on = !skipMap(state.sel)[editing];
+    setMark(state.sel, editing, "skip", on); buzz(10);
+    closeLayer(); save();
+  };
+  $("delBtn").onclick = () => {
+    if (!delArmed) { delArmed = true; $("delBtn").textContent = "Toque de novo para excluir"; return; }
+    state.tasks.delete(editing); closeLayer(); save();
+  };
+
+  $("addBtn").onclick = () => openSheet(null);
+  $("prev").onclick = () => go(addDays(state.sel, -1));
+  $("next").onclick = () => go(addDays(state.sel, 1));
+  $("goToday").onclick = () => go(today());
+
+  // trocar de dia arrastando o dedo
+  let tx = null, ty = null;
+  $("main").addEventListener("touchstart", e => { if (e.touches.length === 1) { tx = e.touches[0].clientX; ty = e.touches[0].clientY; } }, { passive: true });
+  $("main").addEventListener("touchend", e => {
+    if (tx === null) return;
+    const dx = e.changedTouches[0].clientX - tx, dy = e.changedTouches[0].clientY - ty;
+    tx = null;
+    if (state.tab !== "shop" && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.6) go(addDays(state.sel, dx < 0 ? 1 : -1));
+  }, { passive: true });
+
+  let lastToday = today();
+  setInterval(() => {
+    const t = today();
+    if (t !== lastToday) { if (state.sel === lastToday) state.sel = t; lastToday = t; }
+    if (!stack.length) render();
+  }, 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") { pullDone(); refreshStatus(); if (!stack.length) render(); }
+  });
+  if (Rotina) Rotina.addListener("done", pullDone);
+
+
+  // ---------- compras ----------
+  const ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4L19 7"/></svg>';
+  const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>';
+  let shopEditing = null, clearArmed = false;
+  const shop = () => state.shop || (state.shop = []);
+  function splitItems(text) {
+    return text.split(/\s*(?:,|;|\n|\s+e\s+)\s*/i).map(x => x.trim().replace(/[.]+$/, "")).filter(Boolean)
+      .map(x => x[0].toUpperCase() + x.slice(1));
+  }
+  function addItems(text) {
+    const names = splitItems(text); if (!names.length) return 0;
+    names.forEach(name => shop().unshift({ id: "s-" + rid(), name, done: false }));
+    buzz(15); save(); renderShop(); return names.length;
+  }
+  function renderShop() {
+    const items = shop(), pend = items.filter(i => !i.done), got = items.filter(i => i.done);
+    const badge = $("shopBadge"); badge.hidden = !pend.length; badge.textContent = pend.length;
+    if (state.tab !== "shop") return;
+    $("eyebrow").textContent = "Compras da semana";
+    $("dateTitle").textContent = !items.length ? "Nada na lista" : pend.length ? `${pend.length} para comprar` : "Tudo comprado!";
+    const el = $("prog"); el.hidden = !items.length; el.className = "prog" + (items.length && !pend.length ? " full" : "");
+    const r = 32, c = 2 * Math.PI * r, p = items.length ? got.length / items.length : 0, full = items.length && !pend.length;
+    el.innerHTML = `<svg viewBox="0 0 76 76" aria-hidden="true"><circle cx="38" cy="38" r="${r}" fill="${full ? "var(--accent)" : "none"}" stroke="var(--accent-soft)" stroke-width="8"/>` +
+      (full ? "" : `<circle cx="38" cy="38" r="${r}" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="${c * p} ${c}"/>`) +
+      `</svg><span class="num">${full ? "✓" : `${got.length}/${items.length}`}</span>`;
+    const list = $("shopList"); list.innerHTML = "";
+    const add = it => {
+      const li = document.createElement("li");
+      li.className = "item" + (it.done ? " done" : "") + (it.id === justId ? " just" : "");
+      if (shopEditing === it.id) {
+        const box = document.createElement("form"); box.className = "edit-in";
+        const inp = document.createElement("input"); inp.value = it.name; inp.maxLength = 80; inp.setAttribute("aria-label", "Editar item");
+        const ok = document.createElement("button"); ok.type = "submit"; ok.className = "ok"; ok.innerHTML = ICON_OK; ok.setAttribute("aria-label", "Salvar");
+        const del = document.createElement("button"); del.type = "button"; del.className = "del"; del.innerHTML = ICON_TRASH; del.setAttribute("aria-label", "Apagar item");
+        box.onsubmit = e => { e.preventDefault(); const v = inp.value.trim(); if (v) it.name = v; else state.shop = shop().filter(x => x !== it); shopEditing = null; save(); renderShop(); };
+        del.onclick = () => { state.shop = shop().filter(x => x !== it); shopEditing = null; buzz(15); save(); renderShop(); };
+        box.append(inp, ok, del); li.append(box); list.appendChild(li);
+        setTimeout(() => { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }, 30);
+        return;
+      }
+      const row = document.createElement("button"); row.className = "row"; row.setAttribute("aria-pressed", it.done);
+      row.setAttribute("aria-label", (it.done ? "Comprado: " : "Marcar como comprado: ") + it.name);
+      row.onclick = () => { it.done = !it.done; if (it.done) { justId = it.id; buzz(25); } clearArmed = false; save(); renderShop(); };
+      const chk = document.createElement("span"); chk.className = "check"; chk.innerHTML = CHECK;
+      const body = document.createElement("span"); body.className = "body";
+      const ti = document.createElement("span"); ti.className = "title"; ti.textContent = it.name;
+      body.append(ti); row.append(chk, body);
+      const ed = document.createElement("button"); ed.className = "edit"; ed.innerHTML = ICON_EDIT; ed.setAttribute("aria-label", "Editar " + it.name);
+      ed.onclick = () => { shopEditing = it.id; renderShop(); };
+      li.append(row, ed); list.appendChild(li);
+    };
+    pend.forEach(add);
+    if (pend.length && got.length) { const lb = document.createElement("li"); lb.className = "done-label"; lb.textContent = "No carrinho"; list.appendChild(lb); }
+    got.forEach(add);
+    justId = null;
+    $("shopEmpty").hidden = items.length > 0;
+    const cb = $("shopClear"); cb.hidden = !got.length;
+    cb.className = "clear-btn" + (clearArmed ? " armed" : "");
+    cb.textContent = clearArmed ? `Toque de novo para tirar ${got.length} ${got.length === 1 ? "item" : "itens"}` : "Limpar comprados";
+    $("shopMic").hidden = !native;
+  }
+  $("shopForm").onsubmit = e => {
+    e.preventDefault();
+    const inp = $("shopInput"), n = addItems(inp.value);
+    if (n) { inp.value = ""; if (n > 1) toast(`${n} itens adicionados`); }
+    inp.focus();
+  };
+  $("shopMic").onclick = async () => {
+    const text = await listen(); if (!text) return;
+    const n = addItems(text);
+    toast(n === 1 ? `Adicionado: ${shop()[0].name}` : `${n} itens adicionados`);
+  };
+  $("shopClear").onclick = () => {
+    if (!clearArmed) { clearArmed = true; renderShop(); return; }
+    state.shop = shop().filter(i => !i.done); clearArmed = false; buzz(20); save(); renderShop();
+  };
+  function setTab(t) {
+    state.tab = t; state.meta.tab = t; shopEditing = null; clearArmed = false;
+    document.body.classList.toggle("shop-mode", t === "shop");
+    $("tabRotina").classList.toggle("on", t !== "shop"); $("tabRotina").setAttribute("aria-selected", t !== "shop");
+    $("tabCompras").classList.toggle("on", t === "shop"); $("tabCompras").setAttribute("aria-selected", t === "shop");
+    buzz(8); save();
+    if (t === "shop") renderShop(); else render();
+  }
+  $("tabRotina").onclick = () => setTab("rotina");
+  $("tabCompras").onclick = () => setTab("shop");
+
+  window.__rotina = { parseVoice, splitItems };
+
+  (async () => {
+    render();
+    await load();
+    checkRecord();
+    if (state.meta.tab === "shop") setTab("shop"); else render();
+    await pullDone();
+    syncNative();
+  })();
+})();
+</script>
+</body>
+</html>
